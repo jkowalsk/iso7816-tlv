@@ -1,0 +1,54 @@
+//! Error definition for BER-TLV data as defined in [ISO7819-4][iso7816-4]
+use std::error;
+use std::fmt;
+
+/// BER-TLV Error
+#[derive(PartialEq, Clone, Debug)]
+pub enum TlvError {
+  /// Invalid tag encountered
+  InvalidTag,
+  /// Read tag is reserved for future usage
+  TagIsRFU,
+  /// conversion error
+  ParseIntError,
+  /// parsing error
+  TruncatedInput,
+  /// Inconsistant (tag, value) pair
+  Inconsistant,
+  /// Read invalid length value
+  InvalidLength,
+}
+
+impl fmt::Display for TlvError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    let s = match self {
+      TlvError::InvalidTag => "Invalid tag encountered",
+      TlvError::TagIsRFU => "Tag is reserved for future usage",
+      TlvError::ParseIntError => "Error parsing input as int",
+      TlvError::TruncatedInput => "Error input too short",
+      TlvError::Inconsistant => "Inconsistant (tag, value) pair",
+      TlvError::InvalidLength => "Read invalid length value",
+    };
+    write!(f, "{}", s)
+  }
+}
+
+impl error::Error for TlvError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      _ => None,
+    }
+  }
+}
+
+impl From<std::num::ParseIntError> for TlvError {
+  fn from(_: std::num::ParseIntError) -> Self {
+    TlvError::ParseIntError
+  }
+}
+
+impl From<untrusted::EndOfInput> for TlvError {
+  fn from(_: untrusted::EndOfInput) -> Self {
+    TlvError::TruncatedInput
+  }
+}
