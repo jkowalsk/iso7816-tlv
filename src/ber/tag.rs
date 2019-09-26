@@ -3,6 +3,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 use std::str;
+use std::u64;
 
 use crate::{Result, TlvError};
 use untrusted::Reader;
@@ -306,7 +307,7 @@ impl TryFrom<i8> for Tag {
     Tag::try_from(v as u64)
   }
 }
-use std::u64;
+
 impl TryFrom<&str> for Tag {
   type Error = TlvError;
   fn try_from(v: &str) -> Result<Self> {
