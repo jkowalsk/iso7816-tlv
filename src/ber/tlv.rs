@@ -41,7 +41,7 @@ impl Tlv {
       }
     }
     Ok(Tlv {
-      tag: tag,
+      tag,
       value: value.clone(),
     })
   }
@@ -57,7 +57,7 @@ impl Tlv {
   }
 
   fn inner_len_to_vec(&self) -> Vec<u8> {
-    let l = self.value.len();
+    let l = self.value.len_as_bytes();
     if l < 0x7f {
       vec![l as u8]
     } else {
@@ -73,8 +73,8 @@ impl Tlv {
   }
 
   pub(crate) fn len(&self) -> usize {
-    let inner_len = self.value.len();
-    self.tag.len() + Tlv::len_length(inner_len as u32) + inner_len
+    let inner_len = self.value.len_as_bytes();
+    self.tag.len_as_bytes() + Tlv::len_length(inner_len as u32) + inner_len
   }
 
   /// serializes self into a byte vector.
@@ -117,7 +117,7 @@ impl Tlv {
 
     let ret = if tag.is_constructed() {
       let mut val = Value::Constructed(vec![]);
-      while val.len() < len {
+      while val.len_as_bytes() < len {
         let tlv = Tlv::read(r)?;
         val.push(tlv)?;
       }
@@ -129,7 +129,7 @@ impl Tlv {
         &Value::Primitive(content.as_slice_less_safe().to_vec()),
       )?
     };
-    if ret.value.len() != len {
+    if ret.value.len_as_bytes() != len {
       Err(TlvError::Inconsistant)
     } else {
       Ok(ret)
@@ -150,7 +150,7 @@ impl Tlv {
 impl fmt::Display for Tlv {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{}, ", self.tag)?;
-    write!(f, "len={}, ", self.value.len())?;
+    write!(f, "len={}, ", self.value.len_as_bytes())?;
     write!(f, "value:")?;
 
     match &self.value {
@@ -166,7 +166,7 @@ impl fmt::Display for Tlv {
           4
         };
         for x in e {
-          write!(f, "\n")?;
+          writeln!(f)?;
           write!(
             f,
             "{}{:>padding$}",

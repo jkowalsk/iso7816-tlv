@@ -57,7 +57,7 @@ impl Tag {
   }
 
   /// length of the tag as byte array
-  pub fn len(&self) -> usize {
+  pub fn len_as_bytes(&self) -> usize {
     self.len
   }
 
@@ -66,7 +66,7 @@ impl Tag {
   /// > - The value 0 indicates a primitive encoding of the data object, i.e., the value field is not encoded in BER - TLV .
   /// > - The value 1 indicates a constructed encoding of the data object, i.e., the value field is encoded in BER - TLV
   pub fn is_constructed(&self) -> bool {
-    match &self.raw[3 - self.len] & Tag::CONSTRUCTED_MASK {
+    match self.raw[3 - self.len] & Tag::CONSTRUCTED_MASK {
       0 => false,
       _ => true,
     }
@@ -79,12 +79,12 @@ impl Tag {
 
   pub(crate) fn read(r: &mut Reader) -> Result<Self> {
     let first = r.read_byte()?;
-    let mut value = first as u64;
+    let mut value = u64::from(first);
     if first & Tag::VALUE_MASK == Tag::VALUE_MASK {
       loop {
         value = value.checked_shl(8).ok_or_else(|| TlvError::InvalidTag)?;
         let x = r.read_byte()?;
-        value |= x as u64;
+        value |= u64::from(x);
         if x & 0x80 == 0 {
           break;
         }
@@ -159,7 +159,7 @@ impl TryFrom<u64> for Tag {
     }
 
     Ok(Tag {
-      raw: raw,
+      raw,
       len: bytes.len(),
     })
   }
@@ -175,21 +175,21 @@ impl TryFrom<usize> for Tag {
 impl TryFrom<u32> for Tag {
   type Error = TlvError;
   fn try_from(v: u32) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Tag::try_from(u64::from(v))
   }
 }
 
 impl TryFrom<u16> for Tag {
   type Error = TlvError;
   fn try_from(v: u16) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Tag::try_from(u64::from(v))
   }
 }
 
 impl TryFrom<u8> for Tag {
   type Error = TlvError;
   fn try_from(v: u8) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Tag::try_from(u64::from(v))
   }
 }
 
@@ -248,7 +248,7 @@ mod tests {
     let vectors = ["01", "7f22", "7fff22"];
     for &v in vectors.iter() {
       let x = Tag::try_from(v).unwrap();
-      assert_eq!(v.len() / 2, x.len());
+      assert_eq!(v.len() / 2, x.len_as_bytes());
       assert_eq!(v.len() / 2, x.to_bytes().len());
     }
   }
@@ -259,7 +259,7 @@ mod tests {
     for &v in vectors.iter() {
       let mut r = Reader::new(Input::from(v));
       let x = Tag::read(&mut r).unwrap();
-      assert_eq!(v.len(), x.len());
+      assert_eq!(v.len(), x.len_as_bytes());
       assert_eq!(v.len(), x.to_bytes().len());
       assert_eq!(v, x.to_bytes());
     }

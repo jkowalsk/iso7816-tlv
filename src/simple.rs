@@ -51,7 +51,7 @@ impl Tlv {
       Err(TlvError::InvalidLength)
     } else {
       Ok(Tlv {
-        tag: tag,
+        tag,
         value: value.clone(),
       })
     }
@@ -94,7 +94,7 @@ impl Tlv {
     let content = r.read_bytes(len)?;
 
     Ok(Tlv {
-      tag: tag,
+      tag,
       value: Value(content.as_slice_less_safe().to_vec()),
     })
   }
