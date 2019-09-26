@@ -8,7 +8,12 @@ use crate::error::TlvError;
 use crate::Result;
 use untrusted::Reader;
 
-/// Class of a tag
+/// Class of a BER-TLV Tag field.
+/// > Bits 8 and 7 of the first byte of the tag field indicate a class.
+/// > - The value 00 indicates a data object of the universal class.
+/// > - The value 01 indicates a data object of the application class.
+/// > - The value 10 indicates a data object of the context-specific class.
+/// > - The value 11 indicates a data object of the private class.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Class {
   /// Universal class, not defined in ISO/IEC 7816
@@ -32,11 +37,63 @@ impl From<u8> for Class {
   }
 }
 
-/// Tag structure
+/// Tag for BER-TLV data as defined in [ISO7819-4].
+/// > ISO/IEC 7816 supports tag fields of one, two and three bytes;
+/// > longer tag fields are reserved for future use
 #[derive(PartialEq, Clone)]
 pub struct Tag {
   raw: [u8; 3],
   len: usize,
+}
+
+impl Tag {
+  const CLASS_MASK: u8 = 0b1100_0000;
+  const CONSTRUCTED_MASK: u8 = 0b0010_0000;
+  const VALUE_MASK: u8 = 0b0111_1111;
+  const MORE_BYTES_MASK: u8 = 0b1000_0000;
+
+  /// serializes the tag as byte array
+  pub fn to_bytes(&self) -> &[u8] {
+    &self.raw[self.raw.len() - self.len..]
+  }
+
+  /// length of the tag as byte array
+  pub fn len(&self) -> usize {
+    self.len
+  }
+
+  /// Wether the tag is constructed or not
+  /// > Bit 6 of the first byte of the tag field indicates an encoding.
+  /// > - The value 0 indicates a primitive encoding of the data object, i.e., the value field is not encoded in BER - TLV .
+  /// > - The value 1 indicates a constructed encoding of the data object, i.e., the value field is encoded in BER - TLV
+  pub fn is_constructed(&self) -> bool {
+    match &self.raw[3 - self.len] & Tag::CONSTRUCTED_MASK {
+      0 => false,
+      _ => true,
+    }
+  }
+
+  /// Get the tag class
+  pub fn class(&self) -> Class {
+    self.raw[3 - self.len].into()
+  }
+
+  pub(crate) fn read(r: &mut Reader) -> Result<Self> {
+    let first = r.read_byte()?;
+    let mut value = first as u64;
+    if first & Tag::VALUE_MASK == Tag::VALUE_MASK {
+      loop {
+        value = value.checked_shl(8).ok_or_else(|| TlvError::InvalidTag)?;
+        let x = r.read_byte()?;
+        value |= x as u64;
+        if x & 0x80 == 0 {
+          break;
+        }
+      }
+    }
+    let r = Tag::try_from(value)?;
+    Ok(r)
+  }
 }
 
 impl fmt::Display for Tag {
@@ -163,53 +220,6 @@ impl TryFrom<&str> for Tag {
   fn try_from(v: &str) -> Result<Self> {
     let x = u64::from_str_radix(v, 16)?;
     Tag::try_from(x)
-  }
-}
-
-impl Tag {
-  const CLASS_MASK: u8 = 0b1100_0000;
-  const CONSTRUCTED_MASK: u8 = 0b0010_0000;
-  const VALUE_MASK: u8 = 0b0111_1111;
-  const MORE_BYTES_MASK: u8 = 0b1000_0000;
-
-  /// serializes the tag as byte array
-  pub fn to_bytes(&self) -> &[u8] {
-    &self.raw[self.raw.len() - self.len..]
-  }
-
-  /// length of the tag as byte array
-  pub fn len(&self) -> usize {
-    self.len
-  }
-
-  /// Wether the tag is constructed or not
-  pub fn is_constructed(&self) -> bool {
-    match &self.raw[3 - self.len] & Tag::CONSTRUCTED_MASK {
-      0 => false,
-      _ => true,
-    }
-  }
-
-  /// Get the tag class
-  pub fn class(&self) -> Class {
-    self.raw[3 - self.len].into()
-  }
-
-  pub(crate) fn read(r: &mut Reader) -> Result<Self> {
-    let first = r.read_byte()?;
-    let mut value = first as u64;
-    if first & Tag::VALUE_MASK == Tag::VALUE_MASK {
-      loop {
-        value = value.checked_shl(8).ok_or_else(|| TlvError::InvalidTag)?;
-        let x = r.read_byte()?;
-        value |= x as u64;
-        if x & 0x80 == 0 {
-          break;
-        }
-      }
-    }
-    let r = Tag::try_from(value)?;
-    Ok(r)
   }
 }
 
