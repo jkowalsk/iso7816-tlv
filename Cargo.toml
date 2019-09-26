@@ -7,6 +7,7 @@ license = "ISC"
 repository = "https://github.com/jkowalsk/iso7816-tlv"
 description = "tools and utilities for handling TLV data as defined in ISO/IEC 7816-4"
 keywords = ["smartcard", "iso7816", "tlv"]
+categories = ["data-structures"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
