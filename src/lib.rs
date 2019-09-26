@@ -1,5 +1,7 @@
-//! This crate provides tools and utilities for handling BER-TLV data as
+//! This crate provides tools and utilities for handling TLV data as
 //! defined in [ISO7819-4][iso7816-4].
+//!
+//! This include BER-TLV data or SIMPLE-TLV data objects.
 //!
 //!
 //!
@@ -9,15 +11,11 @@
 #![deny(missing_docs)]
 
 // internal organization
+pub mod ber;
 mod error;
-mod tag;
-mod tlv;
-mod value;
+pub mod simple;
 
 // custom reexport (structs at same level for users)
 pub use error::TlvError;
-pub use tag::{Class, Tag};
-pub use tlv::Tlv;
-pub use value::Value;
 
 type Result<T> = std::result::Result<T, TlvError>;

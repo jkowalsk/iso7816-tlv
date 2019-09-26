@@ -1,7 +1,8 @@
 use std::fmt;
 use untrusted::{Input, Reader};
 
-use super::{Result, Tag, TlvError, Value};
+use super::{Tag, Value};
+use crate::{Result, TlvError};
 
 /// BER-TLV structure, following ISO/IEC 7816-4.
 /// > # BER-TLV data objects
@@ -22,11 +23,11 @@ pub struct Tlv {
 }
 
 impl Tlv {
-  /// Create a ER-TLV data object from valid tag and value
+  /// Create a BER-TLV data object from valid tag and value
   /// Fails with TlvError::Inconsistant
   /// if the tag indicates a contructed value (resp. primitive) and the
   /// value is primitive (resp. contructed).
-  pub fn new(tag: Tag, value: &Value) -> Result<Tlv> {
+  pub fn new(tag: Tag, value: &Value) -> Result<Self> {
     match value {
       Value::Constructed(_) => {
         if !tag.is_constructed() {
@@ -183,7 +184,6 @@ impl fmt::Display for Tlv {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::Tag;
   use std::convert::TryFrom;
 
   #[test]

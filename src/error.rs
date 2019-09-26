@@ -1,8 +1,7 @@
-//! Error definition for BER-TLV data as defined in [ISO7819-4][iso7816-4]
 use std::error;
 use std::fmt;
 
-/// BER-TLV Error
+/// Error definition for TLV data as defined in [ISO7819-4].
 #[derive(PartialEq, Clone, Debug)]
 pub enum TlvError {
   /// Invalid tag encountered

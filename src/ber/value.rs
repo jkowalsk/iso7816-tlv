@@ -1,6 +1,6 @@
 use crate::error::TlvError;
 use crate::Result;
-use crate::Tlv;
+use super::Tlv;
 
 /// Value definition of BER-TLV data
 #[derive(PartialEq, Debug, Clone)]

@@ -4,8 +4,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::str;
 
-use crate::error::TlvError;
-use crate::Result;
+use crate::{Result, TlvError};
 use untrusted::Reader;
 
 /// Class of a BER-TLV Tag field.
