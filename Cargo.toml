@@ -3,6 +3,7 @@ name = "iso7816-tlv"
 version = "0.1.0"
 authors = ["Julien Kowalski <julien.kowalski@ercom.fr>"]
 edition = "2018"
+license = "ISC"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
