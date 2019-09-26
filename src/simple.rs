@@ -14,6 +14,31 @@ use crate::{Result, TlvError};
 /// Tag for SIMPLE-TLV data as defined in [ISO7819-4].
 /// > The tag field consists of a single byte encoding a tag number from 1 to 254.
 /// > The values '00' and 'FF' are invalid for tag fields.
+///
+/// Tags can be generated using the [TryFrom][TryFrom] trait
+/// from u8 or hex [str][str].
+///
+/// [TryFrom]: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
+/// [str]:https://doc.rust-lang.org/std/str/
+///
+/// # Example
+/// ```rust
+/// use std::convert::TryFrom;
+/// use iso7816_tlv::simple::Tag;
+/// # use iso7816_tlv::TlvError;
+/// # fn main() -> () {
+///
+/// assert!(Tag::try_from("80").is_ok());
+/// assert!(Tag::try_from(8u8).is_ok());
+/// assert!(Tag::try_from(0x80).is_ok());
+/// assert!(Tag::try_from(127).is_ok());
+///
+/// assert!(Tag::try_from("er").is_err());
+/// assert!(Tag::try_from("00").is_err());
+/// assert!(Tag::try_from("ff").is_err());
+/// # }
+/// #
+/// ```
 #[derive(PartialEq, Debug, Clone)]
 pub struct Tag(u8);
 
@@ -39,6 +64,14 @@ impl TryFrom<u8> for Tag {
       0x00 | 0xFF => Err(TlvError::InvalidInput),
       _ => Ok(Tag(v)),
     }
+  }
+}
+
+impl TryFrom<&str> for Tag {
+  type Error = TlvError;
+  fn try_from(v: &str) -> Result<Self> {
+    let x = u8::from_str_radix(v, 16)?;
+    Tag::try_from(x)
   }
 }
 
@@ -115,5 +148,23 @@ impl Tlv {
     } else {
       r
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::convert::TryFrom;
+
+  #[test]
+  fn tag_import() {
+    assert!(Tag::try_from("80").is_ok());
+    assert!(Tag::try_from(8u8).is_ok());
+    assert!(Tag::try_from(0x80).is_ok());
+    assert!(Tag::try_from(127).is_ok());
+
+    assert!(Tag::try_from("er").is_err());
+    assert!(Tag::try_from("00").is_err());
+    assert!(Tag::try_from("ff").is_err());
   }
 }

@@ -59,23 +59,23 @@ impl From<u8> for Class {
 ///
 /// # Example
 /// ```rust
-/// # use std::convert::TryFrom;
-/// # use iso7816_tlv::ber::Tag;
+/// use std::convert::TryFrom;
+/// use iso7816_tlv::ber::Tag;
 /// # use iso7816_tlv::TlvError;
+///
 /// # fn main() -> () {
-///   assert!(Tag::try_from("80").is_ok());
-///   assert!(Tag::try_from(8u8).is_ok());
-///   assert!(Tag::try_from(8u16).is_ok());
-///   assert!(Tag::try_from(8u32).is_ok());
-///   assert!(Tag::try_from(8i32).is_ok());
-///   assert!(Tag::try_from("7f22").is_ok());
+/// assert!(Tag::try_from("80").is_ok());
+/// assert!(Tag::try_from(8u8).is_ok());
+/// assert!(Tag::try_from(8u16).is_ok());
+/// assert!(Tag::try_from(8u32).is_ok());
+/// assert!(Tag::try_from(8i32).is_ok());
+/// assert!(Tag::try_from("7f22").is_ok());
 ///
-///   assert!(Tag::try_from("bad").is_err());
-///   assert!(Tag::try_from("7fffff01").is_err());
-///   assert!(Tag::try_from("7f00").is_err());
-///   assert!(Tag::try_from("7f80").is_err());
-///   assert!(Tag::try_from("7f1e").is_err());
-///
+/// assert!(Tag::try_from("error ").is_err());
+/// assert!(Tag::try_from("7fffff01").is_err());
+/// assert!(Tag::try_from("7f00").is_err());
+/// assert!(Tag::try_from("7f80ff").is_err());
+/// assert!(Tag::try_from("7f1e").is_err());
 /// # }
 /// #
 /// ```
@@ -99,18 +99,19 @@ impl Tag {
   /// length of the tag as byte array
   /// # Example
   /// ```rust
-  /// # use std::convert::TryFrom;
-  /// # use iso7816_tlv::ber::Tag;
+  /// use std::convert::TryFrom;
+  /// use iso7816_tlv::ber::Tag;
   /// # use iso7816_tlv::TlvError;
+  ///
   /// # fn main() -> Result<(), Box<TlvError>> {
-  ///   let tag = Tag::try_from("80")?;
-  ///   assert_eq!(1, tag.len_as_bytes());
+  /// let tag = Tag::try_from("80")?;
+  /// assert_eq!(1, tag.len_as_bytes());
   ///
-  ///   let tag = Tag::try_from("7f22")?;
-  ///   assert_eq!(2, tag.len_as_bytes());  
+  /// let tag = Tag::try_from("7f22")?;
+  /// assert_eq!(2, tag.len_as_bytes());  
   ///
-  ///   let tag = Tag::try_from("7f8022")?;
-  ///   assert_eq!(3, tag.len_as_bytes());
+  /// let tag = Tag::try_from("7f8022")?;
+  /// assert_eq!(3, tag.len_as_bytes());
   /// #  Ok(())
   /// # }
   /// #
@@ -126,15 +127,16 @@ impl Tag {
   ///
   /// # Example
   /// ```rust
-  /// # use std::convert::TryFrom;
-  /// # use iso7816_tlv::ber::Tag;
+  /// use std::convert::TryFrom;
+  /// use iso7816_tlv::ber::Tag;
   /// # use iso7816_tlv::TlvError;
-  /// # fn main() -> Result<(), Box<TlvError>> {
-  ///   let valid = Tag::try_from(0b0010_0000)?;
-  ///   assert!(valid.is_constructed());
   ///
-  ///   let invalid = Tag::try_from(0b0000_0001)?;
-  ///   assert!(!invalid.is_constructed());
+  /// # fn main() -> Result<(), Box<TlvError>> {
+  /// let valid = Tag::try_from(0b0010_0000)?;
+  /// assert!(valid.is_constructed());
+  ///
+  /// let invalid = Tag::try_from(0b0000_0001)?;
+  /// assert!(!invalid.is_constructed());
   /// #  Ok(())
   /// # }
   /// #
@@ -149,14 +151,15 @@ impl Tag {
   /// Get the tag class.
   /// # Example
   /// ```rust
-  /// # use std::convert::TryFrom;
-  /// # use iso7816_tlv::ber::{Tag, Class};
+  /// use std::convert::TryFrom;
+  /// use iso7816_tlv::ber::{Tag, Class};
   /// # use iso7816_tlv::TlvError;
+  ///
   /// # fn main() -> Result<(), Box<TlvError>> {
-  ///   let tag = Tag::try_from(0b0010_0000)?;
-  ///   assert_eq!(Class::Universal, tag.class());
-  ///   let tag = Tag::try_from(0b1100_0000)?;
-  ///   assert_eq!(Class::Private, tag.class());
+  /// let tag = Tag::try_from(0b0010_0000)?;
+  /// assert_eq!(Class::Universal, tag.class());
+  /// let tag = Tag::try_from(0b1100_0000)?;
+  /// assert_eq!(Class::Private, tag.class());
   /// #  Ok(())
   /// # }
   /// #
