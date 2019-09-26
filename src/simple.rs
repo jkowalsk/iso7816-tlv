@@ -36,7 +36,7 @@ impl TryFrom<u8> for Tag {
   type Error = TlvError;
   fn try_from(v: u8) -> Result<Self> {
     match v {
-      0x00 | 0xFF => Err(TlvError::InvalidTag),
+      0x00 | 0xFF => Err(TlvError::InvalidInput),
       _ => Ok(Tag(v)),
     }
   }
@@ -46,14 +46,11 @@ impl Tlv {
   /// Create a SIMPLE-TLV data object from valid tag and value.
   /// A value has a maximum size of 65_535 bytes.
   /// Otherwise this fonction fails with TlvError::InvalidLength.
-  pub fn new(tag: Tag, value: &Value) -> Result<Self> {
+  pub fn new(tag: Tag, value: Value) -> Result<Self> {
     if value.0.len() > 65_536 {
       Err(TlvError::InvalidLength)
     } else {
-      Ok(Tlv {
-        tag,
-        value: value.clone(),
-      })
+      Ok(Tlv { tag, value: value })
     }
   }
 
@@ -107,5 +104,16 @@ impl Tlv {
       Tlv::read(&mut r),
       r.read_bytes_to_end().as_slice_less_safe(),
     )
+  }
+
+  /// Parses a byte array into a SIMPLE-TLV structure.
+  /// Input must exactly match a SIMPLE-TLV object.
+  pub fn from_bytes(input: &[u8]) -> Result<Self> {
+    let (r, n) = Tlv::parse(input);
+    if n.len() != 0 {
+      Err(TlvError::InvalidInput)
+    } else {
+      r
+    }
   }
 }

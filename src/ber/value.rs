@@ -1,6 +1,6 @@
+use super::Tlv;
 use crate::error::TlvError;
 use crate::Result;
-use super::Tlv;
 
 /// Value definition of BER-TLV data
 #[derive(PartialEq, Debug, Clone)]
@@ -21,7 +21,7 @@ impl Value {
     }
   }
 
-   /// Get value length once serialized into BER-TLV data
+  /// Get value length once serialized into BER-TLV data
   pub fn len_as_bytes(&self) -> usize {
     match &self {
       Value::Primitive(v) => v.len(),
@@ -30,11 +30,13 @@ impl Value {
   }
 
   /// Append a BER-TLV data object.
-  /// input is borrowed to forbid further modification to this object
   /// Fails with TlvError::Inconsistant on primitive or empty values.
   pub fn push(&mut self, tlv: Tlv) -> Result<()> {
     match self {
-      Value::Constructed(t) => {t.push(tlv); Ok(())},
+      Value::Constructed(t) => {
+        t.push(tlv);
+        Ok(())
+      }
       _ => Err(TlvError::Inconsistant),
     }
   }

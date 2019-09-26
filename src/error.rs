@@ -4,8 +4,8 @@ use std::fmt;
 /// Error definition for TLV data as defined in [ISO7819-4].
 #[derive(PartialEq, Clone, Debug)]
 pub enum TlvError {
-  /// Invalid tag encountered
-  InvalidTag,
+  /// Invalid input encountered
+  InvalidInput,
   /// Read tag is reserved for future usage
   TagIsRFU,
   /// conversion error
@@ -21,7 +21,7 @@ pub enum TlvError {
 impl fmt::Display for TlvError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     let s = match self {
-      TlvError::InvalidTag => "Invalid tag encountered",
+      TlvError::InvalidInput => "Invalid tag encountered",
       TlvError::TagIsRFU => "Tag is reserved for future usage",
       TlvError::ParseIntError => "Error parsing input as int",
       TlvError::TruncatedInput => "Error input too short",

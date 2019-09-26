@@ -82,7 +82,7 @@ impl Tag {
     let mut value = u64::from(first);
     if first & Tag::VALUE_MASK == Tag::VALUE_MASK {
       loop {
-        value = value.checked_shl(8).ok_or_else(|| TlvError::InvalidTag)?;
+        value = value.checked_shl(8).ok_or_else(|| TlvError::InvalidInput)?;
         let x = r.read_byte()?;
         value |= u64::from(x);
         if x & 0x80 == 0 {
@@ -136,23 +136,23 @@ impl TryFrom<u64> for Tag {
     let bytes = &bytes[first_non_zero..];
 
     match bytes.len() {
-      0 => return Err(TlvError::InvalidTag),
+      0 => return Err(TlvError::InvalidInput),
       1 => {
         if (bytes[0] & Tag::VALUE_MASK) == Tag::VALUE_MASK {
-          return Err(TlvError::InvalidTag);
+          return Err(TlvError::InvalidInput);
         }
       }
       2 => {
         if (bytes[1] & Tag::MORE_BYTES_MASK) == Tag::MORE_BYTES_MASK {
-          return Err(TlvError::InvalidTag);
+          return Err(TlvError::InvalidInput);
         }
       }
       3 => {
         if (bytes[1] & Tag::MORE_BYTES_MASK) == 0 {
-          return Err(TlvError::InvalidTag);
+          return Err(TlvError::InvalidInput);
         }
         if (bytes[2] & Tag::MORE_BYTES_MASK) == Tag::MORE_BYTES_MASK {
-          return Err(TlvError::InvalidTag);
+          return Err(TlvError::InvalidInput);
         }
       }
       _ => return Err(TlvError::TagIsRFU),
@@ -233,10 +233,10 @@ mod tests {
     assert!(Tag::try_from(0x1).is_ok());
     assert!(Tag::try_from(0x7f22).is_ok());
     assert!(Tag::try_from(0x7fff22).is_ok());
-    assert_eq!(Err(TlvError::InvalidTag), Tag::try_from(0));
-    assert_eq!(Err(TlvError::InvalidTag), Tag::try_from(0x7f));
-    assert_eq!(Err(TlvError::InvalidTag), Tag::try_from(0x7f80));
-    assert_eq!(Err(TlvError::InvalidTag), Tag::try_from(0x7f7f00));
+    assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0));
+    assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f));
+    assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f80));
+    assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f7f00));
     assert_eq!(Err(TlvError::TagIsRFU), Tag::try_from(0x7f808000));
 
     assert!(Tag::try_from("7fff22").is_ok());

@@ -27,7 +27,7 @@ impl Tlv {
   /// Fails with TlvError::Inconsistant
   /// if the tag indicates a contructed value (resp. primitive) and the
   /// value is primitive (resp. contructed).
-  pub fn new(tag: Tag, value: &Value) -> Result<Self> {
+  pub fn new(tag: Tag, value: Value) -> Result<Self> {
     match value {
       Value::Constructed(_) => {
         if !tag.is_constructed() {
@@ -40,10 +40,7 @@ impl Tlv {
         }
       }
     }
-    Ok(Tlv {
-      tag,
-      value: value.clone(),
-    })
+    Ok(Tlv { tag, value: value })
   }
 
   fn len_length(l: u32) -> usize {
@@ -121,13 +118,10 @@ impl Tlv {
         let tlv = Tlv::read(r)?;
         val.push(tlv)?;
       }
-      Tlv::new(tag, &val)?
+      Tlv::new(tag, val)?
     } else {
       let content = r.read_bytes(len)?;
-      Tlv::new(
-        tag,
-        &Value::Primitive(content.as_slice_less_safe().to_vec()),
-      )?
+      Tlv::new(tag, Value::Primitive(content.as_slice_less_safe().to_vec()))?
     };
     if ret.value.len_as_bytes() != len {
       Err(TlvError::Inconsistant)
@@ -144,6 +138,17 @@ impl Tlv {
       Tlv::read(&mut r),
       r.read_bytes_to_end().as_slice_less_safe(),
     )
+  }
+
+  /// Parses a byte array into a BER-TLV structure.
+  /// Input must exactly match a BER-TLV object.
+  pub fn from_bytes(input: &[u8]) -> Result<Self> {
+    let (r, n) = Tlv::parse(input);
+    if n.len() != 0 {
+      Err(TlvError::InvalidInput)
+    } else {
+      r
+    }
   }
 }
 
@@ -188,15 +193,11 @@ mod tests {
 
   #[test]
   fn tlv_to_from_vec_primitive() {
-    let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), &Value::Primitive(vec![0])).unwrap();
+    let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     assert_eq!(vec![1, 1, 0], tlv.to_vec());
     {
       let mut data = vec![0u8; 255];
-      let tlv = Tlv::new(
-        Tag::try_from(1u32).unwrap(),
-        &Value::Primitive(data.clone()),
-      )
-      .unwrap();
+      let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(data.clone())).unwrap();
       let mut expected = vec![1u8, 0x81, 0xFF];
       expected.append(&mut data);
       assert_eq!(expected, tlv.to_vec());
@@ -207,11 +208,7 @@ mod tests {
     }
     {
       let mut data = vec![0u8; 256];
-      let tlv = Tlv::new(
-        Tag::try_from(1u32).unwrap(),
-        &Value::Primitive(data.clone()),
-      )
-      .unwrap();
+      let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(data.clone())).unwrap();
       let mut expected = vec![1u8, 0x82, 0x01, 0x00];
       expected.append(&mut data);
       assert_eq!(expected, tlv.to_vec());
@@ -222,11 +219,7 @@ mod tests {
     }
     {
       let mut data = vec![0u8; 65_536];
-      let tlv = Tlv::new(
-        Tag::try_from(1u32).unwrap(),
-        &Value::Primitive(data.clone()),
-      )
-      .unwrap();
+      let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(data.clone())).unwrap();
       let mut expected = vec![1u8, 0x83, 0x01, 0x00, 0x00];
       expected.append(&mut data);
       assert_eq!(expected, tlv.to_vec());
@@ -239,10 +232,10 @@ mod tests {
 
   #[test]
   fn tlv_to_from_vec_constructed() {
-    let base = Tlv::new(Tag::try_from(1u32).unwrap(), &Value::Primitive(vec![0])).unwrap();
+    let base = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     let mut construct = Value::Constructed(vec![base.clone(), base.clone(), base.clone()]);
 
-    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), &construct).unwrap();
+    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
     let mut expected = vec![0x7fu8, 0x22, 9];
     expected.append(&mut base.to_vec());
     expected.append(&mut base.to_vec());
@@ -256,7 +249,7 @@ mod tests {
     construct.push(base.clone()).unwrap();
     expected[2] += base.len() as u8;
     expected.append(&mut base.to_vec());
-    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), &construct).unwrap();
+    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct).unwrap();
     assert_eq!(expected, tlv.to_vec());
 
     let mut r = Reader::new(Input::from(&expected));
@@ -283,15 +276,15 @@ mod tests {
 
   #[test]
   fn display() {
-    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), &Value::Primitive(vec![0])).unwrap();
+    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     let construct = Value::Constructed(vec![base.clone(), base.clone()]);
-    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), &construct).unwrap();
+    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
 
     let mut construct2 = construct.clone();
     construct2.push(tlv).unwrap();
     construct2.push(base).unwrap();
     let t = Tag::try_from("3F32").unwrap();
-    let tlv = Tlv::new(t, &construct2).unwrap();
+    let tlv = Tlv::new(t, construct2).unwrap();
     println!("{}", tlv)
   }
 
