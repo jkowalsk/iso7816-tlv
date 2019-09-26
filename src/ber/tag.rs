@@ -37,8 +37,47 @@ impl From<u8> for Class {
 }
 
 /// Tag for BER-TLV data as defined in [ISO7819-4].
+/// Valid tags are defined as follow:
 /// > ISO/IEC 7816 supports tag fields of one, two and three bytes;
 /// > longer tag fields are reserved for future use
+///
+/// > In tag fields of two or more bytes,
+/// > the values '00' to '1E' and '80' are invalid for the second byte.
+/// > - In two-byte tag fields, the second byte consists of bit 8 set to 0 and bits 7 to 1.
+/// > - In three-byte tag fields, the second byte consists of bit 8 set to 1 and bits 7 to 1
+/// >   not all set to 0;
+/// >   the third byte consists of bit 8 set to 0 and bits 7 to 1 with any value.
+///
+/// Tags can be generated using the [TryFrom][TryFrom] trait
+/// from integer types (see [Trait Implementations](struct.Tag.html#implementations) for valid input types)
+/// or hex [str][str].
+///
+///
+/// [TryFrom]: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
+/// [str]:https://doc.rust-lang.org/std/str/
+///
+/// # Example
+/// ```rust
+/// # use std::convert::TryFrom;
+/// # use iso7816_tlv::ber::Tag;
+/// # use iso7816_tlv::TlvError;
+/// # fn main() -> () {
+///   assert!(Tag::try_from("80").is_ok());
+///   assert!(Tag::try_from(8u8).is_ok());
+///   assert!(Tag::try_from(8u16).is_ok());
+///   assert!(Tag::try_from(8u32).is_ok());
+///   assert!(Tag::try_from(8i32).is_ok());
+///   assert!(Tag::try_from("7f22").is_ok());
+///
+///   assert!(Tag::try_from("bad").is_err());
+///   assert!(Tag::try_from("7fffff01").is_err());
+///   assert!(Tag::try_from("7f00").is_err());
+///   assert!(Tag::try_from("7f80").is_err());
+///   assert!(Tag::try_from("7f1e").is_err());
+///
+/// # }
+/// #
+/// ```
 #[derive(PartialEq, Clone)]
 pub struct Tag {
   raw: [u8; 3],
@@ -57,6 +96,24 @@ impl Tag {
   }
 
   /// length of the tag as byte array
+  /// # Example
+  /// ```rust
+  /// # use std::convert::TryFrom;
+  /// # use iso7816_tlv::ber::Tag;
+  /// # use iso7816_tlv::TlvError;
+  /// # fn main() -> Result<(), Box<TlvError>> {
+  ///   let tag = Tag::try_from("80")?;
+  ///   assert_eq!(1, tag.len_as_bytes());
+  ///
+  ///   let tag = Tag::try_from("7f22")?;
+  ///   assert_eq!(2, tag.len_as_bytes());  
+  ///
+  ///   let tag = Tag::try_from("7f8022")?;
+  ///   assert_eq!(3, tag.len_as_bytes());
+  /// #  Ok(())
+  /// # }
+  /// #
+  /// ```
   pub fn len_as_bytes(&self) -> usize {
     self.len
   }
@@ -65,6 +122,22 @@ impl Tag {
   /// > Bit 6 of the first byte of the tag field indicates an encoding.
   /// > - The value 0 indicates a primitive encoding of the data object, i.e., the value field is not encoded in BER - TLV .
   /// > - The value 1 indicates a constructed encoding of the data object, i.e., the value field is encoded in BER - TLV
+  ///
+  /// # Example
+  /// ```rust
+  /// # use std::convert::TryFrom;
+  /// # use iso7816_tlv::ber::Tag;
+  /// # use iso7816_tlv::TlvError;
+  /// # fn main() -> Result<(), Box<TlvError>> {
+  ///   let valid = Tag::try_from(0b0010_0000)?;
+  ///   assert!(valid.is_constructed());
+  ///
+  ///   let invalid = Tag::try_from(0b0000_0001)?;
+  ///   assert!(!invalid.is_constructed());
+  /// #  Ok(())
+  /// # }
+  /// #
+  /// ```
   pub fn is_constructed(&self) -> bool {
     match self.raw[3 - self.len] & Tag::CONSTRUCTED_MASK {
       0 => false,
@@ -72,7 +145,21 @@ impl Tag {
     }
   }
 
-  /// Get the tag class
+  /// Get the tag class.
+  /// # Example
+  /// ```rust
+  /// # use std::convert::TryFrom;
+  /// # use iso7816_tlv::ber::{Tag, Class};
+  /// # use iso7816_tlv::TlvError;
+  /// # fn main() -> Result<(), Box<TlvError>> {
+  ///   let tag = Tag::try_from(0b0010_0000)?;
+  ///   assert_eq!(Class::Universal, tag.class());
+  ///   let tag = Tag::try_from(0b1100_0000)?;
+  ///   assert_eq!(Class::Private, tag.class());
+  /// #  Ok(())
+  /// # }
+  /// #
+  /// ```
   pub fn class(&self) -> Class {
     self.raw[3 - self.len].into()
   }
@@ -135,7 +222,9 @@ impl TryFrom<u64> for Tag {
     ];
     let bytes = &bytes[first_non_zero..];
 
-    match bytes.len() {
+    let len = bytes.len();
+
+    match len {
       0 => return Err(TlvError::InvalidInput),
       1 => {
         if (bytes[0] & Tag::VALUE_MASK) == Tag::VALUE_MASK {
@@ -158,10 +247,14 @@ impl TryFrom<u64> for Tag {
       _ => return Err(TlvError::TagIsRFU),
     }
 
-    Ok(Tag {
-      raw,
-      len: bytes.len(),
-    })
+    if len > 1 {
+      match bytes[3 - len] {
+        0x00 | 0x1E | 0x80 => return Err(TlvError::InvalidInput),
+        _ => (),
+      }
+    }
+
+    Ok(Tag { raw, len: len })
   }
 }
 
@@ -243,6 +336,20 @@ mod tests {
     assert_eq!(Err(TlvError::ParseIntError), Tag::try_from("bad one"));
   }
 
+  #[test]
+  fn tag_import_2() {
+    assert!(Tag::try_from("80").is_ok());
+    assert!(Tag::try_from(8u8).is_ok());
+    assert!(Tag::try_from(8u16).is_ok());
+    assert!(Tag::try_from(8u32).is_ok());
+    assert!(Tag::try_from(8i32).is_ok());
+    assert!(Tag::try_from("7f22").is_ok());
+
+    assert!(Tag::try_from("bad").is_err());
+    assert!(Tag::try_from("7f00").is_err());
+    assert!(Tag::try_from("7f80").is_err());
+    assert!(Tag::try_from("7f1e").is_err());
+  }
   #[test]
   fn tag_import() {
     let vectors = ["01", "7f22", "7fff22"];
