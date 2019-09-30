@@ -1,5 +1,5 @@
 //! This module provides tools and utilities for handling BER-TLV data as
-//! defined in [ISO7819-4][iso7816-4].
+//! defined in [ISO7816-4][iso7816-4].
 //!
 //!
 //!

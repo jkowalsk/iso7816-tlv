@@ -1,5 +1,5 @@
 //! This module provides tools and utilities for handling SIMPLE-TLV data as
-//! defined in [ISO7819-4][iso7816-4].
+//! defined in [ISO7816-4][iso7816-4].
 //!
 //!
 //!
@@ -11,7 +11,7 @@ use untrusted::{Input, Reader};
 
 use crate::{Result, TlvError};
 
-/// Tag for SIMPLE-TLV data as defined in [ISO7819-4].
+/// Tag for SIMPLE-TLV data as defined in [ISO7816-4].
 /// > The tag field consists of a single byte encoding a tag number from 1 to 254.
 /// > The values '00' and 'FF' are invalid for tag fields.
 ///
@@ -42,7 +42,7 @@ use crate::{Result, TlvError};
 #[derive(PartialEq, Debug, Clone)]
 pub struct Tag(u8);
 
-/// Value for SIMPLE-TLV data as defined in [ISO7819-4].
+/// Value for SIMPLE-TLV data as defined in [ISO7816].
 /// > the value field consists of N consecutive bytes.
 /// N may be zero. In this case there is no value field
 #[derive(PartialEq, Debug, Clone)]
