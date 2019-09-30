@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Clippy checks
-      run:  cargo clean && cargo clippy -- -Dwarnings 
+      run:  cargo clean && cargo clippy
   build:
     runs-on: ubuntu-latest
     steps:

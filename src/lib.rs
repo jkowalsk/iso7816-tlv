@@ -9,6 +9,9 @@
 //! [iso7816-4]: https://www.iso.org/standard/54550.html
 
 #![deny(missing_docs)]
+// #![deny(clippy::all)] //deny produces errors instead of warnings
+#![cfg_attr(feature = "cargo-clippy", deny(clippy::all))]
+#![cfg_attr(feature = "cargo-clippy", warn(clippy::pedantic))]
 
 // internal organization
 pub mod ber;
