@@ -40,10 +40,10 @@ impl Tlv {
         }
       }
     }
-    Ok(Tlv { tag, value: value })
+    Ok(Self { tag, value })
   }
 
-  fn len_length(l: u32) -> usize {
+  fn len_length(l: usize) -> usize {
     match l {
       0..=127 => 1,
       128..=255 => 2,
@@ -53,6 +53,7 @@ impl Tlv {
     }
   }
 
+  #[allow(clippy::cast_possible_truncation)]
   fn inner_len_to_vec(&self) -> Vec<u8> {
     let l = self.value.len_as_bytes();
     if l < 0x7f {
@@ -71,7 +72,7 @@ impl Tlv {
 
   pub(crate) fn len(&self) -> usize {
     let inner_len = self.value.len_as_bytes();
-    self.tag.len_as_bytes() + Tlv::len_length(inner_len as u32) + inner_len
+    self.tag.len_as_bytes() + Self::len_length(inner_len) + inner_len
   }
 
   /// serializes self into a byte vector.
@@ -93,7 +94,9 @@ impl Tlv {
   fn read_len(r: &mut Reader) -> Result<usize> {
     let mut ret: usize = 0;
     let x = r.read_byte()?;
-    if x & 0x80 != 0 {
+    if x & 0x80 == 0 {
+      ret = x as usize;
+    } else {
       let n_bytes = x as usize & 0x7f;
       if n_bytes > 4 {
         return Err(TlvError::InvalidLength);
@@ -102,31 +105,29 @@ impl Tlv {
         let x = r.read_byte()?;
         ret = ret << 8 | x as usize;
       }
-    } else {
-      ret = x as usize;
     }
     Ok(ret)
   }
 
   fn read(r: &mut Reader) -> Result<Self> {
     let tag = Tag::read(r)?;
-    let len = Tlv::read_len(r)?;
+    let len = Self::read_len(r)?;
 
     let ret = if tag.is_constructed() {
       let mut val = Value::Constructed(vec![]);
       while val.len_as_bytes() < len {
-        let tlv = Tlv::read(r)?;
+        let tlv = Self::read(r)?;
         val.push(tlv)?;
       }
-      Tlv::new(tag, val)?
+      Self::new(tag, val)?
     } else {
       let content = r.read_bytes(len)?;
-      Tlv::new(tag, Value::Primitive(content.as_slice_less_safe().to_vec()))?
+      Self::new(tag, Value::Primitive(content.as_slice_less_safe().to_vec()))?
     };
-    if ret.value.len_as_bytes() != len {
-      Err(TlvError::Inconsistant)
-    } else {
+    if ret.value.len_as_bytes() == len {
       Ok(ret)
+    } else {
+      Err(TlvError::Inconsistant)
     }
   }
 
@@ -135,7 +136,7 @@ impl Tlv {
   pub fn parse(input: &[u8]) -> (Result<Self>, &[u8]) {
     let mut r = Reader::new(Input::from(input));
     (
-      Tlv::read(&mut r),
+      Self::read(&mut r),
       r.read_bytes_to_end().as_slice_less_safe(),
     )
   }
@@ -143,16 +144,16 @@ impl Tlv {
   /// Parses a byte array into a BER-TLV structure.
   /// Input must exactly match a BER-TLV object.
   pub fn from_bytes(input: &[u8]) -> Result<Self> {
-    let (r, n) = Tlv::parse(input);
-    if n.len() != 0 {
-      Err(TlvError::InvalidInput)
+    let (r, n) = Self::parse(input);
+    if n.is_empty() {
+      r      
     } else {
-      r
+      Err(TlvError::InvalidInput)
     }
   }
 
   /// Finds first occurence of a TLV object with given tag in self.
-  pub fn find(&self, tag: &Tag) -> Option<&Tlv> {
+  pub fn find(&self, tag: &Tag) -> Option<&Self> {
     match &self.value {
       Value::Primitive(_) => {
         if self.tag == *tag {
@@ -176,8 +177,8 @@ impl Tlv {
   /// find all occurences of TLV objects with given given tag in self.
   /// Note that searching ContextSpecific class tag (0x80 for instance) will return
   /// a vector of possibly unrelated tlv data.
-  pub fn find_all(&self, tag: &Tag) -> Vec<&Tlv> {
-    let mut ret: Vec<&Tlv> = Vec::new();
+  pub fn find_all(&self, tag: &Tag) -> Vec<&Self> {
+    let mut ret: Vec<&Self> = Vec::new();
     match &self.value {
       Value::Primitive(_) => {
         if self.tag == *tag {
@@ -236,12 +237,16 @@ mod tests {
 
   #[test]
   fn tlv_to_from_vec_primitive() {
-    let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let tlv = Tlv::new(Tag::try_from(1_u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     assert_eq!(vec![1, 1, 0], tlv.to_vec());
     {
-      let mut data = vec![0u8; 255];
-      let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(data.clone())).unwrap();
-      let mut expected = vec![1u8, 0x81, 0xFF];
+      let mut data = vec![0_u8; 255];
+      let tlv = Tlv::new(
+        Tag::try_from(1_u32).unwrap(),
+        Value::Primitive(data.clone()),
+      )
+      .unwrap();
+      let mut expected = vec![1_u8, 0x81, 0xFF];
       expected.append(&mut data);
       assert_eq!(expected, tlv.to_vec());
 
@@ -250,9 +255,13 @@ mod tests {
       assert_eq!(tlv, read);
     }
     {
-      let mut data = vec![0u8; 256];
-      let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(data.clone())).unwrap();
-      let mut expected = vec![1u8, 0x82, 0x01, 0x00];
+      let mut data = vec![0_u8; 256];
+      let tlv = Tlv::new(
+        Tag::try_from(1_u32).unwrap(),
+        Value::Primitive(data.clone()),
+      )
+      .unwrap();
+      let mut expected = vec![1_u8, 0x82, 0x01, 0x00];
       expected.append(&mut data);
       assert_eq!(expected, tlv.to_vec());
 
@@ -261,9 +270,13 @@ mod tests {
       assert_eq!(tlv, read);
     }
     {
-      let mut data = vec![0u8; 65_536];
-      let tlv = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(data.clone())).unwrap();
-      let mut expected = vec![1u8, 0x83, 0x01, 0x00, 0x00];
+      let mut data = vec![0_u8; 65_536];
+      let tlv = Tlv::new(
+        Tag::try_from(1_u32).unwrap(),
+        Value::Primitive(data.clone()),
+      )
+      .unwrap();
+      let mut expected = vec![1_u8, 0x83, 0x01, 0x00, 0x00];
       expected.append(&mut data);
       assert_eq!(expected, tlv.to_vec());
 
@@ -274,12 +287,13 @@ mod tests {
   }
 
   #[test]
+  #[allow(clippy::cast_possible_truncation)]
   fn tlv_to_from_vec_constructed() {
-    let base = Tlv::new(Tag::try_from(1u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let base = Tlv::new(Tag::try_from(1_u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     let mut construct = Value::Constructed(vec![base.clone(), base.clone(), base.clone()]);
 
     let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
-    let mut expected = vec![0x7fu8, 0x22, 9];
+    let mut expected = vec![0x7f_u8, 0x22, 9];
     expected.append(&mut base.to_vec());
     expected.append(&mut base.to_vec());
     expected.append(&mut base.to_vec());
@@ -305,8 +319,8 @@ mod tests {
   #[test]
   fn parse() {
     let primitive_bytes = vec![1, 1, 0];
-    let more_bytes = vec![1u8; 10];
-    let mut input = vec![0x7fu8, 0x22, 9];
+    let more_bytes = vec![1_u8; 10];
+    let mut input = vec![0x7f_u8, 0x22, 9];
     input.extend(&primitive_bytes);
     input.extend(&primitive_bytes);
     input.extend(&primitive_bytes);
@@ -319,7 +333,7 @@ mod tests {
 
   #[test]
   fn display() {
-    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let base = Tlv::new(Tag::try_from(0x80_u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     let construct = Value::Constructed(vec![base.clone(), base.clone()]);
     let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
 
@@ -333,34 +347,34 @@ mod tests {
 
   #[test]
   fn find() {
-    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let base = Tlv::new(Tag::try_from(0x80_u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     let t = base.clone();
 
     // shall return self
-    assert_eq!(Some(&t), t.find(&Tag::try_from(0x80u32).unwrap()));
-    assert!(t.find(&Tag::try_from(0x81u32).unwrap()).is_none());
+    assert_eq!(Some(&t), t.find(&Tag::try_from(0x80_u32).unwrap()));
+    assert!(t.find(&Tag::try_from(0x81_u32).unwrap()).is_none());
 
     let construct = Value::Constructed(vec![t, base.clone()]);
     let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
-    assert_eq!(None, tlv.find(&Tag::try_from(0x81u32).unwrap()));
-    let found = tlv.find(&Tag::try_from(0x80u32).unwrap());
+    assert_eq!(None, tlv.find(&Tag::try_from(0x81_u32).unwrap()));
+    let found = tlv.find(&Tag::try_from(0x80_u32).unwrap());
     assert!(found.is_some());
     assert_eq!(base.clone(), *found.unwrap());
   }
 
   #[test]
   fn find_all() {
-    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let base = Tlv::new(Tag::try_from(0x80_u32).unwrap(), Value::Primitive(vec![0])).unwrap();
     let t = base.clone();
 
     // shall return self
-    assert_eq!(1, t.find_all(&Tag::try_from(0x80u32).unwrap()).len());
-    assert_eq!(0, t.find_all(&Tag::try_from(0x81u32).unwrap()).len());
+    assert_eq!(1, t.find_all(&Tag::try_from(0x80_u32).unwrap()).len());
+    assert_eq!(0, t.find_all(&Tag::try_from(0x81_u32).unwrap()).len());
 
     let construct = Value::Constructed(vec![t, base.clone()]);
     let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
-    assert_eq!(0, tlv.find_all(&Tag::try_from(0x81u32).unwrap()).len());
-    assert_eq!(2, tlv.find_all(&Tag::try_from(0x80u32).unwrap()).len());
+    assert_eq!(0, tlv.find_all(&Tag::try_from(0x81_u32).unwrap()).len());
+    assert_eq!(2, tlv.find_all(&Tag::try_from(0x80_u32).unwrap()).len());
   }
 
 }

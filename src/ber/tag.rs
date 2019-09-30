@@ -49,7 +49,7 @@ impl From<u8> for Class {
 /// >   not all set to 0;
 /// >   the third byte consists of bit 8 set to 0 and bits 7 to 1 with any value.
 ///
-/// Tags can be generated using the [TryFrom][TryFrom] trait
+/// Tags can be generated using the [`TryFrom`][TryFrom] trait
 /// from integer types (see [Trait Implementations](struct.Tag.html#implementations) for valid input types)
 /// or hex [str][str].
 ///
@@ -142,7 +142,7 @@ impl Tag {
   /// #
   /// ```
   pub fn is_constructed(&self) -> bool {
-    match self.raw[3 - self.len] & Tag::CONSTRUCTED_MASK {
+    match self.raw[3 - self.len] & Self::CONSTRUCTED_MASK {
       0 => false,
       _ => true,
     }
@@ -171,7 +171,7 @@ impl Tag {
   pub(crate) fn read(r: &mut Reader) -> Result<Self> {
     let first = r.read_byte()?;
     let mut value = u64::from(first);
-    if first & Tag::VALUE_MASK == Tag::VALUE_MASK {
+    if first & Self::VALUE_MASK == Self::VALUE_MASK {
       loop {
         value = value.checked_shl(8).ok_or_else(|| TlvError::InvalidInput)?;
         let x = r.read_byte()?;
@@ -181,7 +181,7 @@ impl Tag {
         }
       }
     }
-    let r = Tag::try_from(value)?;
+    let r = Self::try_from(value)?;
     Ok(r)
   }
 }
@@ -212,7 +212,7 @@ impl TryFrom<u64> for Tag {
   fn try_from(v: u64) -> Result<Self> {
     let bytes = v.to_be_bytes();
     let mut first_non_zero = 0;
-    for &x in bytes.iter() {
+    for &x in &bytes {
       if x == 0 {
         first_non_zero += 1;
       } else {
@@ -231,20 +231,20 @@ impl TryFrom<u64> for Tag {
     match len {
       0 => return Err(TlvError::InvalidInput),
       1 => {
-        if (bytes[0] & Tag::VALUE_MASK) == Tag::VALUE_MASK {
+        if (bytes[0] & Self::VALUE_MASK) == Self::VALUE_MASK {
           return Err(TlvError::InvalidInput);
         }
       }
       2 => {
-        if (bytes[1] & Tag::MORE_BYTES_MASK) == Tag::MORE_BYTES_MASK {
+        if (bytes[1] & Self::MORE_BYTES_MASK) == Self::MORE_BYTES_MASK {
           return Err(TlvError::InvalidInput);
         }
       }
       3 => {
-        if (bytes[1] & Tag::MORE_BYTES_MASK) == 0 {
+        if (bytes[1] & Self::MORE_BYTES_MASK) == 0 {
           return Err(TlvError::InvalidInput);
         }
-        if (bytes[2] & Tag::MORE_BYTES_MASK) == Tag::MORE_BYTES_MASK {
+        if (bytes[2] & Self::MORE_BYTES_MASK) == Self::MORE_BYTES_MASK {
           return Err(TlvError::InvalidInput);
         }
       }
@@ -258,56 +258,59 @@ impl TryFrom<u64> for Tag {
       }
     }
 
-    Ok(Tag { raw, len: len })
+    Ok(Self { raw, len })
   }
 }
 
 impl TryFrom<usize> for Tag {
   type Error = TlvError;
   fn try_from(v: usize) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Self::try_from(v as u64)
   }
 }
 
 impl TryFrom<u32> for Tag {
   type Error = TlvError;
   fn try_from(v: u32) -> Result<Self> {
-    Tag::try_from(u64::from(v))
+    Self::try_from(u64::from(v))
   }
 }
 
 impl TryFrom<u16> for Tag {
   type Error = TlvError;
   fn try_from(v: u16) -> Result<Self> {
-    Tag::try_from(u64::from(v))
+    Self::try_from(u64::from(v))
   }
 }
 
 impl TryFrom<u8> for Tag {
   type Error = TlvError;
   fn try_from(v: u8) -> Result<Self> {
-    Tag::try_from(u64::from(v))
+    Self::try_from(u64::from(v))
   }
 }
 
 impl TryFrom<i32> for Tag {
   type Error = TlvError;
+  #[allow(clippy::cast_sign_loss)]
   fn try_from(v: i32) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Self::try_from(v as u64)
   }
 }
 
 impl TryFrom<i16> for Tag {
   type Error = TlvError;
+  #[allow(clippy::cast_sign_loss)]
   fn try_from(v: i16) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Self::try_from(v as u64)
   }
 }
 
 impl TryFrom<i8> for Tag {
   type Error = TlvError;
+  #[allow(clippy::cast_sign_loss)]
   fn try_from(v: i8) -> Result<Self> {
-    Tag::try_from(v as u64)
+    Self::try_from(v as u64)
   }
 }
 
@@ -315,7 +318,7 @@ impl TryFrom<&str> for Tag {
   type Error = TlvError;
   fn try_from(v: &str) -> Result<Self> {
     let x = u64::from_str_radix(v, 16)?;
-    Tag::try_from(x)
+    Self::try_from(x)
   }
 }
 
@@ -329,12 +332,12 @@ mod tests {
   fn tag_import_ok() {
     assert!(Tag::try_from(0x1).is_ok());
     assert!(Tag::try_from(0x7f22).is_ok());
-    assert!(Tag::try_from(0x7fff22).is_ok());
+    assert!(Tag::try_from(0x7f_ff_22).is_ok());
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0));
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f));
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f80));
-    assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f7f00));
-    assert_eq!(Err(TlvError::TagIsRFU), Tag::try_from(0x7f808000));
+    assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f_7f_00));
+    assert_eq!(Err(TlvError::TagIsRFU), Tag::try_from(0x7f_80_80_00));
 
     assert!(Tag::try_from("7fff22").is_ok());
     assert_eq!(Err(TlvError::ParseIntError), Tag::try_from("bad one"));
@@ -343,10 +346,10 @@ mod tests {
   #[test]
   fn tag_import_2() {
     assert!(Tag::try_from("80").is_ok());
-    assert!(Tag::try_from(8u8).is_ok());
-    assert!(Tag::try_from(8u16).is_ok());
-    assert!(Tag::try_from(8u32).is_ok());
-    assert!(Tag::try_from(8i32).is_ok());
+    assert!(Tag::try_from(8_u8).is_ok());
+    assert!(Tag::try_from(8_u16).is_ok());
+    assert!(Tag::try_from(8_u32).is_ok());
+    assert!(Tag::try_from(8_i32).is_ok());
     assert!(Tag::try_from("7f22").is_ok());
 
     assert!(Tag::try_from("bad").is_err());
@@ -357,7 +360,7 @@ mod tests {
   #[test]
   fn tag_import() {
     let vectors = ["01", "7f22", "7fff22"];
-    for &v in vectors.iter() {
+    for &v in &vectors {
       let x = Tag::try_from(v).unwrap();
       assert_eq!(v.len() / 2, x.len_as_bytes());
       assert_eq!(v.len() / 2, x.to_bytes().len());
@@ -367,7 +370,7 @@ mod tests {
   #[test]
   fn tag_read() {
     let vectors: [&[u8]; 3] = [&[1], &[0x7f, 0x22], &[0x7f, 0xff, 0x22]];
-    for &v in vectors.iter() {
+    for &v in &vectors {
       let mut r = Reader::new(Input::from(v));
       let x = Tag::read(&mut r).unwrap();
       assert_eq!(v.len(), x.len_as_bytes());
@@ -376,7 +379,7 @@ mod tests {
     }
 
     let bad_vectors: [&[u8]; 2] = [&[0x7f, 0xff], &[0x7f, 0xff, 0xff]];
-    for &v in bad_vectors.iter() {
+    for &v in &bad_vectors {
       let mut r = Reader::new(Input::from(v));
       assert_eq!(Err(TlvError::TruncatedInput), Tag::read(&mut r));
     }

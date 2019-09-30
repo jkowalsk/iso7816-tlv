@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 
 /// Error definition for TLV data as defined in [ISO7816-4].
+#[allow(clippy::module_name_repetitions)]
 #[derive(PartialEq, Clone, Debug)]
 pub enum TlvError {
   /// Invalid input encountered

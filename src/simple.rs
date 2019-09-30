@@ -15,7 +15,7 @@ use crate::{Result, TlvError};
 /// > The tag field consists of a single byte encoding a tag number from 1 to 254.
 /// > The values '00' and 'FF' are invalid for tag fields.
 ///
-/// Tags can be generated using the [TryFrom][TryFrom] trait
+/// Tags can be generated using the [`TryFrom`][TryFrom] trait
 /// from u8 or hex [str][str].
 ///
 /// [TryFrom]: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
@@ -62,7 +62,7 @@ impl TryFrom<u8> for Tag {
   fn try_from(v: u8) -> Result<Self> {
     match v {
       0x00 | 0xFF => Err(TlvError::InvalidInput),
-      _ => Ok(Tag(v)),
+      _ => Ok(Self(v)),
     }
   }
 }
@@ -71,7 +71,7 @@ impl TryFrom<&str> for Tag {
   type Error = TlvError;
   fn try_from(v: &str) -> Result<Self> {
     let x = u8::from_str_radix(v, 16)?;
-    Tag::try_from(x)
+    Self::try_from(x)
   }
 }
 
@@ -83,23 +83,23 @@ impl Tlv {
     if value.0.len() > 65_536 {
       Err(TlvError::InvalidLength)
     } else {
-      Ok(Tlv { tag, value: value })
+      Ok(Self { tag, value })
     }
   }
 
   /// serializes self into a byte vector.
+  #[allow(clippy::cast_possible_truncation)]
   pub fn to_vec(&self) -> Vec<u8> {
     let mut ret = Vec::new();
     ret.push(self.tag.0);
     let len = self.value.0.len();
-    match len {
-      0..=254 => ret.push(len as u8),
-      _ => {
-        ret.push(0xFF);
-        ret.push((len >> 8) as u8);
-        ret.push(len as u8);
-      }
-    };
+    if len < 255 {
+      ret.push(len as u8);
+    } else {
+      ret.push(0xFF);
+      ret.push((len >> 8) as u8);
+      ret.push(len as u8);
+    }
     ret.extend(&self.value.0);
     ret
   }
@@ -120,10 +120,10 @@ impl Tlv {
 
   fn read(r: &mut Reader) -> Result<Self> {
     let tag = Tag::try_from(r.read_byte()?)?;
-    let len = Tlv::read_len(r)?;
+    let len = Self::read_len(r)?;
     let content = r.read_bytes(len)?;
 
-    Ok(Tlv {
+    Ok(Self {
       tag,
       value: Value(content.as_slice_less_safe().to_vec()),
     })
@@ -134,7 +134,7 @@ impl Tlv {
   pub fn parse(input: &[u8]) -> (Result<Self>, &[u8]) {
     let mut r = Reader::new(Input::from(input));
     (
-      Tlv::read(&mut r),
+      Self::read(&mut r),
       r.read_bytes_to_end().as_slice_less_safe(),
     )
   }
@@ -142,11 +142,11 @@ impl Tlv {
   /// Parses a byte array into a SIMPLE-TLV structure.
   /// Input must exactly match a SIMPLE-TLV object.
   pub fn from_bytes(input: &[u8]) -> Result<Self> {
-    let (r, n) = Tlv::parse(input);
-    if n.len() != 0 {
-      Err(TlvError::InvalidInput)
-    } else {
+    let (r, n) = Self::parse(input);
+    if n.is_empty() {
       r
+    } else {
+      Err(TlvError::InvalidInput)
     }
   }
 }
@@ -159,7 +159,7 @@ mod tests {
   #[test]
   fn tag_import() {
     assert!(Tag::try_from("80").is_ok());
-    assert!(Tag::try_from(8u8).is_ok());
+    assert!(Tag::try_from(8_u8).is_ok());
     assert!(Tag::try_from(0x80).is_ok());
     assert!(Tag::try_from(127).is_ok());
 

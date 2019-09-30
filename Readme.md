@@ -1,5 +1,9 @@
 # iso7816-tlv
 
+![](https://github.com/jkowalsk/iso7816-tlv/workflows/clippy/badge.svg)
+![](https://github.com/jkowalsk/iso7816-tlv/workflows/build/badge.svg)
+![](https://github.com/jkowalsk/iso7816-tlv/workflows/test/badge.svg)
+
 Tools and utilities for handling TLV data as defined in [ISO7816-4][iso7816-4].
 
 This include BER-TLV data or SIMPLE-TLV data objects.
