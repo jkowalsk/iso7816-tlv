@@ -83,7 +83,7 @@ impl Tlv {
     if value.0.len() > 65_536 {
       Err(TlvError::InvalidLength)
     } else {
-      Ok(Tlv { tag, value: value })
+      Ok(Tlv { tag, value })
     }
   }
 
@@ -143,7 +143,7 @@ impl Tlv {
   /// Input must exactly match a SIMPLE-TLV object.
   pub fn from_bytes(input: &[u8]) -> Result<Self> {
     let (r, n) = Tlv::parse(input);
-    if n.len() != 0 {
+    if !n.is_empty() {
       Err(TlvError::InvalidInput)
     } else {
       r

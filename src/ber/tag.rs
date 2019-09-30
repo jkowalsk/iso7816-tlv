@@ -258,7 +258,7 @@ impl TryFrom<u64> for Tag {
       }
     }
 
-    Ok(Tag { raw, len: len })
+    Ok(Tag { raw, len })
   }
 }
 

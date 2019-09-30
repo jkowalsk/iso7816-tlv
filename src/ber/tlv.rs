@@ -40,7 +40,7 @@ impl Tlv {
         }
       }
     }
-    Ok(Tlv { tag, value: value })
+    Ok(Tlv { tag, value })
   }
 
   fn len_length(l: u32) -> usize {
@@ -144,7 +144,7 @@ impl Tlv {
   /// Input must exactly match a BER-TLV object.
   pub fn from_bytes(input: &[u8]) -> Result<Self> {
     let (r, n) = Tlv::parse(input);
-    if n.len() != 0 {
+    if !n.is_empty() {
       Err(TlvError::InvalidInput)
     } else {
       r
