@@ -1,4 +1,4 @@
-//! Tag definition and utilities for BER-TLV data as defined in [ISO7819-4]
+//! Tag definition and utilities for BER-TLV data as defined in [ISO7816-4]
 //!
 use std::convert::TryFrom;
 use std::fmt;
@@ -18,7 +18,7 @@ use untrusted::Reader;
 pub enum Class {
   /// Universal class, not defined in ISO/IEC 7816
   Universal,
-  /// Application class, identification defined in [ISO7819-4]
+  /// Application class, identification defined in [ISO7816-4]
   Application,
   /// Context-specific class, defined in ISO/IEC 7816
   ContextSpecific,
@@ -37,7 +37,7 @@ impl From<u8> for Class {
   }
 }
 
-/// Tag for BER-TLV data as defined in [ISO7819-4].
+/// Tag for BER-TLV data as defined in [ISO7816-4].
 /// Valid tags are defined as follow:
 /// > ISO/IEC 7816 supports tag fields of one, two and three bytes;
 /// > longer tag fields are reserved for future use

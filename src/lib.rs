@@ -1,5 +1,5 @@
 //! This crate provides tools and utilities for handling TLV data as
-//! defined in [ISO7819-4][iso7816-4].
+//! defined in [ISO7816-4][iso7816-4].
 //!
 //! This include BER-TLV data or SIMPLE-TLV data objects.
 //!

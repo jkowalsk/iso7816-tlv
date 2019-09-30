@@ -150,6 +150,49 @@ impl Tlv {
       r
     }
   }
+
+  /// Finds first occurence of a TLV object with given tag in self.
+  pub fn find(&self, tag: &Tag) -> Option<&Tlv> {
+    match &self.value {
+      Value::Primitive(_) => {
+        if self.tag == *tag {
+          Some(&self)
+        } else {
+          None
+        }
+      }
+      Value::Constructed(e) => {
+        for x in e {
+          match x.find(tag) {
+            None => (),
+            Some(e) => return Some(e),
+          }
+        }
+        None
+      }
+    }
+  }
+
+  /// find all occurences of TLV objects with given given tag in self.
+  /// Note that searching ContextSpecific class tag (0x80 for instance) will return
+  /// a vector of possibly unrelated tlv data.
+  pub fn find_all(&self, tag: &Tag) -> Vec<&Tlv> {
+    let mut ret: Vec<&Tlv> = Vec::new();
+    match &self.value {
+      Value::Primitive(_) => {
+        if self.tag == *tag {
+          ret.push(self);
+        }
+      }
+      Value::Constructed(e) => {
+        for x in e {
+          let v = x.find(tag);
+          ret.extend(v);
+        }
+      }
+    }
+    ret
+  }
 }
 
 impl fmt::Display for Tlv {
@@ -286,6 +329,38 @@ mod tests {
     let t = Tag::try_from("3F32").unwrap();
     let tlv = Tlv::new(t, construct2).unwrap();
     println!("{}", tlv)
+  }
+
+  #[test]
+  fn find() {
+    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let t = base.clone();
+
+    // shall return self
+    assert_eq!(Some(&t), t.find(&Tag::try_from(0x80u32).unwrap()));
+    assert!(t.find(&Tag::try_from(0x81u32).unwrap()).is_none());
+
+    let construct = Value::Constructed(vec![t, base.clone()]);
+    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
+    assert_eq!(None, tlv.find(&Tag::try_from(0x81u32).unwrap()));
+    let found = tlv.find(&Tag::try_from(0x80u32).unwrap());
+    assert!(found.is_some());
+    assert_eq!(base.clone(), *found.unwrap());
+  }
+
+  #[test]
+  fn find_all() {
+    let base = Tlv::new(Tag::try_from(0x80u32).unwrap(), Value::Primitive(vec![0])).unwrap();
+    let t = base.clone();
+
+    // shall return self
+    assert_eq!(1, t.find_all(&Tag::try_from(0x80u32).unwrap()).len());
+    assert_eq!(0, t.find_all(&Tag::try_from(0x81u32).unwrap()).len());
+
+    let construct = Value::Constructed(vec![t, base.clone()]);
+    let tlv = Tlv::new(Tag::try_from("7f22").unwrap(), construct.clone()).unwrap();
+    assert_eq!(0, tlv.find_all(&Tag::try_from(0x81u32).unwrap()).len());
+    assert_eq!(2, tlv.find_all(&Tag::try_from(0x80u32).unwrap()).len());
   }
 
 }

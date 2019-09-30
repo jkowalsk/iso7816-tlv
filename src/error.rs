@@ -1,7 +1,7 @@
 use std::error;
 use std::fmt;
 
-/// Error definition for TLV data as defined in [ISO7819-4].
+/// Error definition for TLV data as defined in [ISO7816-4].
 #[derive(PartialEq, Clone, Debug)]
 pub enum TlvError {
   /// Invalid input encountered
