@@ -207,6 +207,16 @@ impl fmt::Debug for Tag {
   }
 }
 
+impl Into<u64> for Tag {
+  fn into(self) -> u64 {
+    let mut ret = 0_u64;
+    for &b in self.to_bytes()  {
+      ret = ret << 8 | u64::from(b) ;
+    }
+    ret
+  }
+}
+
 impl TryFrom<u64> for Tag {
   type Error = TlvError;
   fn try_from(v: u64) -> Result<Self> {
@@ -331,8 +341,14 @@ mod tests {
   #[test]
   fn tag_import_ok() {
     assert!(Tag::try_from(0x1).is_ok());
+    assert_eq!(0x1_u64, Tag::try_from(0x1).unwrap().into());
+
     assert!(Tag::try_from(0x7f22).is_ok());
+    assert_eq!(0x7f22_u64, Tag::try_from(0x7f22).unwrap().into());
+
     assert!(Tag::try_from(0x7f_ff_22).is_ok());
+    assert_eq!(0x7f_ff_22_u64, Tag::try_from(0x7f_ff_22).unwrap().into());
+
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0));
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f));
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f80));
