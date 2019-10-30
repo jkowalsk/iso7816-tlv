@@ -36,10 +36,12 @@ use crate::{Result, TlvError};
 /// assert!(Tag::try_from("er").is_err());
 /// assert!(Tag::try_from("00").is_err());
 /// assert!(Tag::try_from("ff").is_err());
+/// 
+/// assert_eq!(127_u8, Tag::try_from(127_u8).unwrap().into());
 /// # }
 /// #
 /// ```
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Tag(u8);
 
 /// Value for SIMPLE-TLV data as defined in [ISO7816].
@@ -55,6 +57,12 @@ pub struct Value(Vec<u8>);
 pub struct Tlv {
   tag: Tag,
   value: Value,
+}
+
+impl Into<u8> for Tag {
+  fn into(self) -> u8 {
+    self.0
+  }
 }
 
 impl TryFrom<u8> for Tag {
@@ -87,6 +95,21 @@ impl Tlv {
     }
   }
 
+  /// Get SIMPLE-TLV  tag.
+  pub fn tag(&self) -> Tag {
+    self.tag
+  }
+
+  /// Get SIMPLE-TLV value length
+  pub fn length(&self) -> usize {
+    self.value.0.len()
+  }
+
+  /// Get SIMPLE-TLV value
+  pub fn value(&self) -> &[u8] {
+    self.value.0.as_slice()
+  }
+
   /// serializes self into a byte vector.
   #[allow(clippy::cast_possible_truncation)]
   pub fn to_vec(&self) -> Vec<u8> {
@@ -110,10 +133,10 @@ impl Tlv {
     if x == 0xFF {
       for _ in 0..2 {
         let x = r.read_byte()?;
-        ret = ret << 8 | x as usize;
+        ret = ret << 8 | usize::from(x);
       }
     } else {
-      ret = x as usize;
+      ret = usize::from(x);
     }
     Ok(ret)
   }
@@ -160,8 +183,13 @@ mod tests {
   fn tag_import() {
     assert!(Tag::try_from("80").is_ok());
     assert!(Tag::try_from(8_u8).is_ok());
+    assert_eq!(0x8_u8, Tag::try_from(8_u8).unwrap().into());
+
     assert!(Tag::try_from(0x80).is_ok());
+    assert_eq!(0x80_u8, Tag::try_from(0x80_u8).unwrap().into());
+
     assert!(Tag::try_from(127).is_ok());
+    assert_eq!(127_u8, Tag::try_from(127_u8).unwrap().into());
 
     assert!(Tag::try_from("er").is_err());
     assert!(Tag::try_from("00").is_err());
