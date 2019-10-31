@@ -245,10 +245,13 @@ mod tests {
     for r in 1_u8..0xFF {
       let v_len = rng.gen_range(1, 65537);
       let v: Value = (0..v_len).map(|_| rng.gen::<u8>()).collect();
-      let tlv = Tlv::new(Tag::try_from(r)?, v)?;
+      let tlv = Tlv::new(Tag::try_from(r)?, v.clone())?;
       let ser = tlv.to_vec();
       let tlv_2 = Tlv::from_bytes(&*ser)?;
       assert_eq!(tlv, tlv_2);
+
+      assert_eq!(r, tlv.tag().into());
+      assert_eq!(v, tlv.value());
     }
     Ok(())
   }
