@@ -29,10 +29,10 @@ pub enum Class {
 impl From<u8> for Class {
   fn from(val: u8) -> Self {
     match val & Tag::CLASS_MASK {
-      0b0000_0000 => Class::Universal,
-      0b0100_0000 => Class::Application,
-      0b1000_0000 => Class::ContextSpecific,
-      _ => Class::Private,
+      0b0000_0000 => Self::Universal,
+      0b0100_0000 => Self::Application,
+      0b1000_0000 => Self::ContextSpecific,
+      _ => Self::Private,
     }
   }
 }
@@ -210,8 +210,8 @@ impl fmt::Debug for Tag {
 impl Into<u64> for Tag {
   fn into(self) -> u64 {
     let mut ret = 0_u64;
-    for &b in self.to_bytes()  {
-      ret = ret << 8 | u64::from(b) ;
+    for &b in self.to_bytes() {
+      ret = ret << 8 | u64::from(b);
     }
     ret
   }

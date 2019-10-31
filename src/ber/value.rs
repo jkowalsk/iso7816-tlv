@@ -16,7 +16,7 @@ impl Value {
   /// Wether the value is constructed or not
   pub fn is_constructed(&self) -> bool {
     match self {
-      Value::Constructed(_) => true,
+      Self::Constructed(_) => true,
       _ => false,
     }
   }
@@ -24,8 +24,8 @@ impl Value {
   /// Get value length once serialized into BER-TLV data
   pub fn len_as_bytes(&self) -> usize {
     match &self {
-      Value::Primitive(v) => v.len(),
-      Value::Constructed(tlv) => tlv.iter().fold(0, |sum, x| sum + x.len()),
+      Self::Primitive(v) => v.len(),
+      Self::Constructed(tlv) => tlv.iter().fold(0, |sum, x| sum + x.len()),
     }
   }
 
@@ -33,7 +33,7 @@ impl Value {
   /// Fails with TlvError::Inconsistant on primitive or empty values.
   pub fn push(&mut self, tlv: Tlv) -> Result<()> {
     match self {
-      Value::Constructed(t) => {
+      Self::Constructed(t) => {
         t.push(tlv);
         Ok(())
       }

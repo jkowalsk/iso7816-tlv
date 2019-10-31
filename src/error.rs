@@ -22,12 +22,12 @@ pub enum TlvError {
 impl fmt::Display for TlvError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     let s = match self {
-      TlvError::InvalidInput => "Invalid tag encountered",
-      TlvError::TagIsRFU => "Tag is reserved for future usage",
-      TlvError::ParseIntError => "Error parsing input as int",
-      TlvError::TruncatedInput => "Error input too short",
-      TlvError::Inconsistant => "Inconsistant (tag, value) pair",
-      TlvError::InvalidLength => "Read invalid length value",
+      Self::InvalidInput => "Invalid tag encountered",
+      Self::TagIsRFU => "Tag is reserved for future usage",
+      Self::ParseIntError => "Error parsing input as int",
+      Self::TruncatedInput => "Error input too short",
+      Self::Inconsistant => "Inconsistant (tag, value) pair",
+      Self::InvalidLength => "Read invalid length value",
     };
     write!(f, "{}", s)
   }
@@ -43,12 +43,12 @@ impl error::Error for TlvError {
 
 impl From<std::num::ParseIntError> for TlvError {
   fn from(_: std::num::ParseIntError) -> Self {
-    TlvError::ParseIntError
+    Self::ParseIntError
   }
 }
 
 impl From<untrusted::EndOfInput> for TlvError {
   fn from(_: untrusted::EndOfInput) -> Self {
-    TlvError::TruncatedInput
+    Self::TruncatedInput
   }
 }
