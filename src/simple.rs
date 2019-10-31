@@ -36,7 +36,7 @@ use crate::{Result, TlvError};
 /// assert!(Tag::try_from("er").is_err());
 /// assert!(Tag::try_from("00").is_err());
 /// assert!(Tag::try_from("ff").is_err());
-/// 
+///
 /// assert_eq!(127_u8, Tag::try_from(127_u8).unwrap().into());
 /// # }
 /// #
@@ -46,13 +46,13 @@ pub struct Tag(u8);
 
 /// Value for SIMPLE-TLV data as defined in [ISO7816].
 /// > the value field consists of N consecutive bytes.
-/// N may be zero. In this case there is no value field
-#[derive(PartialEq, Debug, Clone)]
-pub struct Value(Vec<u8>);
+/// > N may be zero. In this case there is no value field.
+/// In this case Value.0 is an empty vector
+pub type Value = Vec<u8>;
 
 /// SIMPLE-TLV data object representation.
 /// > Each SIMPLE-TLV data object shall consist of two or three consecutive fields:
-/// a mandatory tag field, a mandatory length field and a conditional value field
+/// > a mandatory tag field, a mandatory length field and a conditional value field
 #[derive(PartialEq, Debug, Clone)]
 pub struct Tlv {
   tag: Tag,
@@ -88,7 +88,7 @@ impl Tlv {
   /// A value has a maximum size of 65_535 bytes.
   /// Otherwise this fonction fails with TlvError::InvalidLength.
   pub fn new(tag: Tag, value: Value) -> Result<Self> {
-    if value.0.len() > 65_536 {
+    if value.len() > 65_536 {
       Err(TlvError::InvalidLength)
     } else {
       Ok(Self { tag, value })
@@ -102,12 +102,12 @@ impl Tlv {
 
   /// Get SIMPLE-TLV value length
   pub fn length(&self) -> usize {
-    self.value.0.len()
+    self.value.len()
   }
 
   /// Get SIMPLE-TLV value
   pub fn value(&self) -> &[u8] {
-    self.value.0.as_slice()
+    self.value.as_slice()
   }
 
   /// serializes self into a byte vector.
@@ -115,7 +115,7 @@ impl Tlv {
   pub fn to_vec(&self) -> Vec<u8> {
     let mut ret = Vec::new();
     ret.push(self.tag.0);
-    let len = self.value.0.len();
+    let len = self.value.len();
     if len < 255 {
       ret.push(len as u8);
     } else {
@@ -123,7 +123,7 @@ impl Tlv {
       ret.push((len >> 8) as u8);
       ret.push(len as u8);
     }
-    ret.extend(&self.value.0);
+    ret.extend(&self.value);
     ret
   }
 
@@ -148,7 +148,7 @@ impl Tlv {
 
     Ok(Self {
       tag,
-      value: Value(content.as_slice_less_safe().to_vec()),
+      value: content.as_slice_less_safe().to_vec(),
     })
   }
 
@@ -177,6 +177,7 @@ impl Tlv {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use rand::Rng;
   use std::convert::TryFrom;
 
   #[test]
@@ -194,5 +195,61 @@ mod tests {
     assert!(Tag::try_from("er").is_err());
     assert!(Tag::try_from("00").is_err());
     assert!(Tag::try_from("ff").is_err());
+  }
+
+  #[test]
+  fn parse_1() {
+    let in_data = [
+      0x84_u8, 0x01, 0x2C, 0x97, 0x00, 0x84, 0x01, 0x24, 0x9E, 0x01, 0x42,
+    ];
+
+    let (r, in_data) = Tlv::parse(&in_data);
+    assert_eq!(8, in_data.len());
+    assert!(r.is_ok());
+
+    let t = r.unwrap();
+    assert_eq!(0x84_u8, t.tag.into());
+    assert_eq!(1, t.length());
+    assert_eq!(&[0x2C], t.value());
+
+    let (r, in_data) = Tlv::parse(&in_data);
+    assert_eq!(6, in_data.len());
+    assert!(r.is_ok());
+
+    let t = r.unwrap();
+    assert_eq!(0x97_u8, t.tag.into());
+    assert_eq!(0, t.length());
+
+    let (r, in_data) = Tlv::parse(&in_data);
+    assert_eq!(3, in_data.len());
+    assert!(r.is_ok());
+
+    let t = r.unwrap();
+    assert_eq!(0x84_u8, t.tag.into());
+    assert_eq!(1, t.length());
+    assert_eq!(&[0x24], t.value());
+
+    let (r, in_data) = Tlv::parse(&in_data);
+    assert_eq!(0, in_data.len());
+    assert!(r.is_ok());
+
+    let t = r.unwrap();
+    assert_eq!(0x9E_u8, t.tag.into());
+    assert_eq!(1, t.length());
+    assert_eq!(&[0x42], t.value());
+  }
+
+  #[test]
+  fn serialize_parse() -> Result<()> {
+    let mut rng = rand::thread_rng();
+    for r in 1_u8..0xFF {
+      let v_len = rng.gen_range(1, 65537);
+      let v: Value = (0..v_len).map(|_| rng.gen::<u8>()).collect();
+      let tlv = Tlv::new(Tag::try_from(r)?, v)?;
+      let ser = tlv.to_vec();
+      let tlv_2 = Tlv::from_bytes(&*ser)?;
+      assert_eq!(tlv, tlv_2);
+    }
+    Ok(())
   }
 }
