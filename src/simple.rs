@@ -26,7 +26,7 @@ use crate::{Result, TlvError};
 /// use std::convert::TryFrom;
 /// use iso7816_tlv::simple::Tag;
 /// # use iso7816_tlv::TlvError;
-/// # fn main() -> () {
+/// # fn main() -> Result<(), TlvError> {
 ///
 /// assert!(Tag::try_from("80").is_ok());
 /// assert!(Tag::try_from(8u8).is_ok());
@@ -37,7 +37,8 @@ use crate::{Result, TlvError};
 /// assert!(Tag::try_from("00").is_err());
 /// assert!(Tag::try_from("ff").is_err());
 ///
-/// assert_eq!(127_u8, Tag::try_from(127_u8).unwrap().into());
+/// assert_eq!(127_u8, Tag::try_from(127_u8)?.into());
+/// # Ok(())
 /// # }
 /// #
 /// ```
@@ -181,24 +182,25 @@ mod tests {
   use std::convert::TryFrom;
 
   #[test]
-  fn tag_import() {
+  fn tag_import() -> Result<()> {
     assert!(Tag::try_from("80").is_ok());
     assert!(Tag::try_from(8_u8).is_ok());
-    assert_eq!(0x8_u8, Tag::try_from(8_u8).unwrap().into());
+    assert_eq!(0x8_u8, Tag::try_from(8_u8)?.into());
 
     assert!(Tag::try_from(0x80).is_ok());
-    assert_eq!(0x80_u8, Tag::try_from(0x80_u8).unwrap().into());
+    assert_eq!(0x80_u8, Tag::try_from(0x80_u8)?.into());
 
     assert!(Tag::try_from(127).is_ok());
-    assert_eq!(127_u8, Tag::try_from(127_u8).unwrap().into());
+    assert_eq!(127_u8, Tag::try_from(127_u8)?.into());
 
     assert!(Tag::try_from("er").is_err());
     assert!(Tag::try_from("00").is_err());
     assert!(Tag::try_from("ff").is_err());
+    Ok(())
   }
 
   #[test]
-  fn parse_1() {
+  fn parse_1() -> Result<()> {
     let in_data = [
       0x84_u8, 0x01, 0x2C, 0x97, 0x00, 0x84, 0x01, 0x24, 0x9E, 0x01, 0x42,
     ];
@@ -207,7 +209,7 @@ mod tests {
     assert_eq!(8, in_data.len());
     assert!(r.is_ok());
 
-    let t = r.unwrap();
+    let t = r?;
     assert_eq!(0x84_u8, t.tag.into());
     assert_eq!(1, t.length());
     assert_eq!(&[0x2C], t.value());
@@ -216,7 +218,7 @@ mod tests {
     assert_eq!(6, in_data.len());
     assert!(r.is_ok());
 
-    let t = r.unwrap();
+    let t = r?;
     assert_eq!(0x97_u8, t.tag.into());
     assert_eq!(0, t.length());
 
@@ -224,7 +226,7 @@ mod tests {
     assert_eq!(3, in_data.len());
     assert!(r.is_ok());
 
-    let t = r.unwrap();
+    let t = r?;
     assert_eq!(0x84_u8, t.tag.into());
     assert_eq!(1, t.length());
     assert_eq!(&[0x24], t.value());
@@ -233,10 +235,12 @@ mod tests {
     assert_eq!(0, in_data.len());
     assert!(r.is_ok());
 
-    let t = r.unwrap();
+    let t = r?;
     assert_eq!(0x9E_u8, t.tag.into());
     assert_eq!(1, t.length());
     assert_eq!(&[0x42], t.value());
+
+    Ok(())
   }
 
   #[test]
