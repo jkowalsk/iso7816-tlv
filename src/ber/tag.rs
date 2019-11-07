@@ -29,10 +29,10 @@ pub enum Class {
 impl From<u8> for Class {
   fn from(val: u8) -> Self {
     match val & Tag::CLASS_MASK {
-      0b0000_0000 => Class::Universal,
-      0b0100_0000 => Class::Application,
-      0b1000_0000 => Class::ContextSpecific,
-      _ => Class::Private,
+      0b0000_0000 => Self::Universal,
+      0b0100_0000 => Self::Application,
+      0b1000_0000 => Self::ContextSpecific,
+      _ => Self::Private,
     }
   }
 }
@@ -207,6 +207,16 @@ impl fmt::Debug for Tag {
   }
 }
 
+impl Into<u64> for Tag {
+  fn into(self) -> u64 {
+    let mut ret = 0_u64;
+    for &b in self.to_bytes() {
+      ret = ret << 8 | u64::from(b);
+    }
+    ret
+  }
+}
+
 impl TryFrom<u64> for Tag {
   type Error = TlvError;
   fn try_from(v: u64) -> Result<Self> {
@@ -329,10 +339,16 @@ mod tests {
   use untrusted::Input;
 
   #[test]
-  fn tag_import_ok() {
+  fn tag_import_ok() -> Result<()> {
     assert!(Tag::try_from(0x1).is_ok());
+    assert_eq!(0x1_u64, Tag::try_from(0x1)?.into());
+
     assert!(Tag::try_from(0x7f22).is_ok());
+    assert_eq!(0x7f22_u64, Tag::try_from(0x7f22)?.into());
+
     assert!(Tag::try_from(0x7f_ff_22).is_ok());
+    assert_eq!(0x7f_ff_22_u64, Tag::try_from(0x7f_ff_22)?.into());
+
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0));
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f));
     assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f80));
@@ -341,6 +357,8 @@ mod tests {
 
     assert!(Tag::try_from("7fff22").is_ok());
     assert_eq!(Err(TlvError::ParseIntError), Tag::try_from("bad one"));
+
+    Ok(())
   }
 
   #[test]
@@ -358,21 +376,22 @@ mod tests {
     assert!(Tag::try_from("7f1e").is_err());
   }
   #[test]
-  fn tag_import() {
+  fn tag_import() -> Result<()> {
     let vectors = ["01", "7f22", "7fff22"];
     for &v in &vectors {
-      let x = Tag::try_from(v).unwrap();
+      let x = Tag::try_from(v)?;
       assert_eq!(v.len() / 2, x.len_as_bytes());
       assert_eq!(v.len() / 2, x.to_bytes().len());
     }
+    Ok(())
   }
 
   #[test]
-  fn tag_read() {
+  fn tag_read() -> Result<()> {
     let vectors: [&[u8]; 3] = [&[1], &[0x7f, 0x22], &[0x7f, 0xff, 0x22]];
     for &v in &vectors {
       let mut r = Reader::new(Input::from(v));
-      let x = Tag::read(&mut r).unwrap();
+      let x = Tag::read(&mut r)?;
       assert_eq!(v.len(), x.len_as_bytes());
       assert_eq!(v.len(), x.to_bytes().len());
       assert_eq!(v, x.to_bytes());
@@ -383,5 +402,6 @@ mod tests {
       let mut r = Reader::new(Input::from(v));
       assert_eq!(Err(TlvError::TruncatedInput), Tag::read(&mut r));
     }
+    Ok(())
   }
 }
