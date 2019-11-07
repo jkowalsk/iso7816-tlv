@@ -28,6 +28,7 @@ use crate::{Result, TlvError};
 /// # use iso7816_tlv::TlvError;
 /// # fn main() -> Result<(), TlvError> {
 ///
+/// // get tag from u8 or &str
 /// assert!(Tag::try_from("80").is_ok());
 /// assert!(Tag::try_from(8u8).is_ok());
 /// assert!(Tag::try_from(0x80).is_ok());
@@ -37,7 +38,10 @@ use crate::{Result, TlvError};
 /// assert!(Tag::try_from("00").is_err());
 /// assert!(Tag::try_from("ff").is_err());
 ///
-/// assert_eq!(127_u8, Tag::try_from(127_u8)?.into());
+/// // get tag as u8
+/// let tag = Tag::try_from("80")?;
+/// let _tag_as_u8: u8 = tag.into();
+/// let _tag_as_u8 = Into::<u8>::into(tag);
 /// # Ok(())
 /// # }
 /// #
@@ -46,9 +50,11 @@ use crate::{Result, TlvError};
 pub struct Tag(u8);
 
 /// Value for SIMPLE-TLV data as defined in [ISO7816].
-/// > the value field consists of N consecutive bytes.
-/// > N may be zero. In this case there is no value field.
-/// In this case Value.0 is an empty vector
+/// > The value field consists of N consecutive bytes.
+/// > N may be zero.
+/// > In this case there is no value field.
+///
+/// In this case Value is an empty vector
 pub type Value = Vec<u8>;
 
 /// SIMPLE-TLV data object representation.
