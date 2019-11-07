@@ -210,7 +210,7 @@ mod tests {
     assert!(r.is_ok());
 
     let t = r?;
-    assert_eq!(0x84_u8, t.tag.into());
+    assert_eq!(0x84_u8, t.tag().into());
     assert_eq!(1, t.length());
     assert_eq!(&[0x2C], t.value());
 
@@ -219,7 +219,7 @@ mod tests {
     assert!(r.is_ok());
 
     let t = r?;
-    assert_eq!(0x97_u8, t.tag.into());
+    assert_eq!(0x97_u8, t.tag().into());
     assert_eq!(0, t.length());
 
     let (r, in_data) = Tlv::parse(&in_data);
@@ -227,7 +227,7 @@ mod tests {
     assert!(r.is_ok());
 
     let t = r?;
-    assert_eq!(0x84_u8, t.tag.into());
+    assert_eq!(0x84_u8, t.tag().into());
     assert_eq!(1, t.length());
     assert_eq!(&[0x24], t.value());
 
@@ -236,7 +236,7 @@ mod tests {
     assert!(r.is_ok());
 
     let t = r?;
-    assert_eq!(0x9E_u8, t.tag.into());
+    assert_eq!(0x9E_u8, t.tag().into());
     assert_eq!(1, t.length());
     assert_eq!(&[0x42], t.value());
 
