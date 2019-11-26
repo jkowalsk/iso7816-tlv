@@ -1,9 +1,8 @@
 //! Tag definition and utilities for BER-TLV data as defined in [ISO7816-4]
 //!
-use std::convert::TryFrom;
-use std::fmt;
-use std::str;
-use std::u64;
+
+use core::convert::TryFrom;
+use core::fmt;
 
 use crate::{Result, TlvError};
 use untrusted::Reader;

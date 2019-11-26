@@ -2,6 +2,8 @@ use super::Tlv;
 use crate::error::TlvError;
 use crate::Result;
 
+use alloc::vec::Vec;
+
 /// Value definition of BER-TLV data
 #[derive(PartialEq, Debug, Clone)]
 pub enum Value {

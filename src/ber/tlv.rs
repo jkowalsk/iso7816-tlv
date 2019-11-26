@@ -1,4 +1,6 @@
-use std::fmt;
+use alloc::vec::Vec;
+use core::fmt;
+
 use untrusted::{Input, Reader};
 
 use super::{Tag, Value};
@@ -257,7 +259,7 @@ impl fmt::Display for Tlv {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use std::convert::TryFrom;
+  use core::convert::TryFrom;
 
   #[test]
   fn tlv_to_from_vec_primitive() -> Result<()> {
@@ -336,7 +338,6 @@ mod tests {
     let read = Tlv::read(&mut r)?;
     assert_eq!(tlv, read);
 
-    println!("{}", tlv);
     Ok(())
   }
 
@@ -356,6 +357,7 @@ mod tests {
     Ok(())
   }
 
+  #[cfg(feature = "std")]
   #[test]
   #[allow(clippy::redundant_clone)] // keep redundant_clone to have fewer modification if test is expanded
   fn display() -> Result<()> {

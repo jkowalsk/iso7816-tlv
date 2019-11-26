@@ -1,5 +1,4 @@
-use std::error;
-use std::fmt;
+use core::fmt;
 
 /// Error definition for TLV data as defined in [ISO7816-4].
 #[allow(clippy::module_name_repetitions)]
@@ -19,6 +18,15 @@ pub enum TlvError {
   InvalidLength,
 }
 
+#[cfg(feature = "std")]
+impl std::error::Error for TlvError {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    match self {
+      _ => None,
+    }
+  }
+}
+
 impl fmt::Display for TlvError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     let s = match self {
@@ -33,16 +41,8 @@ impl fmt::Display for TlvError {
   }
 }
 
-impl error::Error for TlvError {
-  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-    match self {
-      _ => None,
-    }
-  }
-}
-
-impl From<std::num::ParseIntError> for TlvError {
-  fn from(_: std::num::ParseIntError) -> Self {
+impl From<core::num::ParseIntError> for TlvError {
+  fn from(_: core::num::ParseIntError) -> Self {
     Self::ParseIntError
   }
 }

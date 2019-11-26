@@ -6,7 +6,9 @@
 //!
 //! [iso7816-4]: https://www.iso.org/standard/54550.html
 //!
-use std::convert::TryFrom;
+use alloc::vec::Vec;
+use core::convert::TryFrom;
+
 use untrusted::{Input, Reader};
 
 use crate::{Result, TlvError};
@@ -191,8 +193,8 @@ impl Tlv {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use core::convert::TryFrom;
   use rand::Rng;
-  use std::convert::TryFrom;
 
   #[test]
   fn tag_import() -> Result<()> {
