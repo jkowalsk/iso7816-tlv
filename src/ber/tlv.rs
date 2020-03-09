@@ -1,4 +1,6 @@
-use std::fmt;
+use alloc::vec::Vec;
+use core::fmt;
+
 use untrusted::{Input, Reader};
 
 use super::{Tag, Value};
@@ -23,8 +25,9 @@ pub struct Tlv {
 }
 
 impl Tlv {
-  /// Create a BER-TLV data object from valid tag and value
-  /// Fails with TlvError::Inconsistant
+  /// Create a BER-TLV data object from valid tag and value.alloc
+  /// # Errors
+  /// Fails with `TlvError::Inconsistant`
   /// if the tag indicates a contructed value (resp. primitive) and the
   /// value is primitive (resp. contructed).
   pub fn new(tag: Tag, value: Value) -> Result<Self> {
@@ -44,16 +47,19 @@ impl Tlv {
   }
 
   /// Get BER-TLV  tag.
+  #[must_use]
   pub fn tag(&self) -> &Tag {
     &self.tag
   }
 
   /// Get BER-TLV value length
+  #[must_use]
   pub fn length(&self) -> usize {
     self.len()
   }
 
   /// Get BER-TLV value
+  #[must_use]
   pub fn value(&self) -> &Value {
     &self.value
   }
@@ -91,6 +97,7 @@ impl Tlv {
   }
 
   /// serializes self into a byte vector.
+  #[must_use]
   pub fn to_vec(&self) -> Vec<u8> {
     let mut ret: Vec<u8> = Vec::new();
     ret.extend(self.tag.to_bytes().iter());
@@ -158,6 +165,8 @@ impl Tlv {
 
   /// Parses a byte array into a BER-TLV structure.
   /// Input must exactly match a BER-TLV object.
+  /// # Errors
+  /// Fails with `TlvError::InvalidInput` if input does not match a BER-TLV object.
   pub fn from_bytes(input: &[u8]) -> Result<Self> {
     let (r, n) = Self::parse(input);
     if n.is_empty() {
@@ -168,6 +177,7 @@ impl Tlv {
   }
 
   /// Finds first occurence of a TLV object with given tag in self.
+  #[must_use]
   pub fn find(&self, tag: &Tag) -> Option<&Self> {
     match &self.value {
       Value::Primitive(_) => {
@@ -190,8 +200,9 @@ impl Tlv {
   }
 
   /// find all occurences of TLV objects with given given tag in self.
-  /// Note that searching ContextSpecific class tag (0x80 for instance) will return
+  /// Note that searching `ContextSpecific` class tag (0x80 for instance) will return
   /// a vector of possibly unrelated tlv data.
+  #[must_use]
   pub fn find_all(&self, tag: &Tag) -> Vec<&Self> {
     let mut ret: Vec<&Self> = Vec::new();
     match &self.value {
@@ -248,7 +259,7 @@ impl fmt::Display for Tlv {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use std::convert::TryFrom;
+  use core::convert::TryFrom;
 
   #[test]
   fn tlv_to_from_vec_primitive() -> Result<()> {
@@ -327,7 +338,6 @@ mod tests {
     let read = Tlv::read(&mut r)?;
     assert_eq!(tlv, read);
 
-    println!("{}", tlv);
     Ok(())
   }
 
@@ -347,7 +357,9 @@ mod tests {
     Ok(())
   }
 
+  #[cfg(feature = "std")]
   #[test]
+  #[allow(clippy::redundant_clone)] // keep redundant_clone to have fewer modification if test is expanded
   fn display() -> Result<()> {
     let base = Tlv::new(Tag::try_from(0x80_u32)?, Value::Primitive(vec![0]))?;
     let construct = Value::Constructed(vec![base.clone(), base.clone()]);
@@ -363,6 +375,7 @@ mod tests {
   }
 
   #[test]
+  #[allow(clippy::redundant_clone)] // keep redundant_clone to have fewer modification if test is expanded
   fn find() -> Result<()> {
     let base = Tlv::new(Tag::try_from(0x80_u32)?, Value::Primitive(vec![0]))?;
     let t = base.clone();
@@ -383,6 +396,7 @@ mod tests {
   }
 
   #[test]
+  #[allow(clippy::redundant_clone)] // keep redundant_clone to have fewer modification if test is expanded
   fn find_all() -> Result<()> {
     let base = Tlv::new(Tag::try_from(0x80_u32)?, Value::Primitive(vec![0]))?;
     let t = base.clone();

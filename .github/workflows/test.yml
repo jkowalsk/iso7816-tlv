@@ -1,11 +1,17 @@
-name: test
+name: Test
 
 on: [push]
 
 jobs:
   test:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Build
-      run: cargo test --verbose
+    - run: cargo test --verbose
+  test-relase:
+    name: Tests Release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: cargo test --verbose --release
