@@ -11,14 +11,15 @@
 #![deny(missing_docs)]
 #![cfg_attr(feature = "cargo-clippy", deny(clippy::all))]
 #![cfg_attr(feature = "cargo-clippy", deny(clippy::pedantic))]
-#![no_std]
-
 // otherwise cargo doc fails with
 // error: no global memory allocator found but one is required; link to std or add #[global_allocator] to
 // a static item that implements the GlobalAlloc trait.
-#[cfg(doc)]
+#![cfg_attr(not(doc), no_std)]
+
+// use custom allocator for tests
+#[cfg(test)]
 extern crate wee_alloc;
-#[cfg(doc)]
+#[cfg(test)]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
