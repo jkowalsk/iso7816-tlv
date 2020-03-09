@@ -18,10 +18,10 @@
 
 // use custom allocator for tests
 #[cfg(test)]
-extern crate wee_alloc;
+use static_alloc::Bump;
 #[cfg(test)]
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: Bump<[u8; 1 << 28]> = Bump::uninit();
 
 // use vectors
 #[macro_use]

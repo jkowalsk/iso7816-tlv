@@ -194,7 +194,7 @@ impl Tlv {
 mod tests {
   use super::*;
   use core::convert::TryFrom;
-  use rand::Rng;
+  use rand_core::{RngCore, SeedableRng};
 
   #[test]
   fn tag_import() -> Result<()> {
@@ -259,11 +259,12 @@ mod tests {
   }
 
   #[test]
+  #[allow(clippy::cast_possible_truncation)]
   fn serialize_parse() -> Result<()> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand_xorshift::XorShiftRng::seed_from_u64(10);
     for r in 1_u8..0xFF {
-      let v_len = rng.gen_range(1, 65537);
-      let v: Value = (0..v_len).map(|_| rng.gen::<u8>()).collect();
+      let v_len = rng.next_u32() % 0xFFFF;
+      let v: Value = (0..v_len).map(|_| rng.next_u32() as u8).collect();
       let tlv = Tlv::new(Tag::try_from(r)?, v.clone())?;
       let ser = tlv.to_vec();
       let tlv_2 = Tlv::from_bytes(&*ser)?;
