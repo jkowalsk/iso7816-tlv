@@ -14,6 +14,7 @@ pub enum Value {
 
 impl Value {
   /// Wether the value is constructed or not
+  #[must_use]
   pub fn is_constructed(&self) -> bool {
     match self {
       Self::Constructed(_) => true,
@@ -22,6 +23,7 @@ impl Value {
   }
 
   /// Get value length once serialized into BER-TLV data
+  #[must_use]
   pub fn len_as_bytes(&self) -> usize {
     match &self {
       Self::Primitive(v) => v.len(),
@@ -30,7 +32,8 @@ impl Value {
   }
 
   /// Append a BER-TLV data object.
-  /// Fails with TlvError::Inconsistant on primitive or empty values.
+  /// # Errors
+  /// Fails with `TlvError::Inconsistant` on primitive or empty values.
   pub fn push(&mut self, tlv: Tlv) -> Result<()> {
     match self {
       Self::Constructed(t) => {

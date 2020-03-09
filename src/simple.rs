@@ -92,8 +92,10 @@ impl TryFrom<&str> for Tag {
 
 impl Tlv {
   /// Create a SIMPLE-TLV data object from valid tag and value.
-  /// A value has a maximum size of 65_535 bytes.
-  /// Otherwise this fonction fails with TlvError::InvalidLength.
+  /// A value has a maximum size of `65_535` bytes.
+  ///
+  /// # Errors
+  /// Fails with `TlvError::InvalidLength` if value is longer than `65_535` bytes.
   pub fn new(tag: Tag, value: Value) -> Result<Self> {
     if value.len() > 65_536 {
       Err(TlvError::InvalidLength)
@@ -103,22 +105,26 @@ impl Tlv {
   }
 
   /// Get SIMPLE-TLV  tag.
+  #[must_use]
   pub fn tag(&self) -> Tag {
     self.tag
   }
 
   /// Get SIMPLE-TLV value length
+  #[must_use]
   pub fn length(&self) -> usize {
     self.value.len()
   }
 
   /// Get SIMPLE-TLV value
+  #[must_use]
   pub fn value(&self) -> &[u8] {
     self.value.as_slice()
   }
 
   /// serializes self into a byte vector.
   #[allow(clippy::cast_possible_truncation)]
+  #[must_use]
   pub fn to_vec(&self) -> Vec<u8> {
     let mut ret = Vec::new();
     ret.push(self.tag.0);
@@ -168,9 +174,10 @@ impl Tlv {
       r.read_bytes_to_end().as_slice_less_safe(),
     )
   }
-
   /// Parses a byte array into a SIMPLE-TLV structure.
   /// Input must exactly match a SIMPLE-TLV object.
+  /// # Errors
+  /// Fails with `TlvError::InvalidInput` if input does not match a SIMPLE-TLV object.
   pub fn from_bytes(input: &[u8]) -> Result<Self> {
     let (r, n) = Self::parse(input);
     if n.is_empty() {
