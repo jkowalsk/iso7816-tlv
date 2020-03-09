@@ -92,6 +92,7 @@ impl Tag {
   const MORE_BYTES_MASK: u8 = 0b1000_0000;
 
   /// serializes the tag as byte array
+  #[must_use]
   pub fn to_bytes(&self) -> &[u8] {
     &self.raw[self.raw.len() - self.len..]
   }
@@ -116,6 +117,7 @@ impl Tag {
   /// # }
   /// #
   /// ```
+  #[must_use]
   pub fn len_as_bytes(&self) -> usize {
     self.len
   }
@@ -141,6 +143,7 @@ impl Tag {
   /// # }
   /// #
   /// ```
+  #[must_use]
   pub fn is_constructed(&self) -> bool {
     match self.raw[3 - self.len] & Self::CONSTRUCTED_MASK {
       0 => false,
@@ -164,6 +167,7 @@ impl Tag {
   /// # }
   /// #
   /// ```
+  #[must_use]
   pub fn class(&self) -> Class {
     self.raw[3 - self.len].into()
   }
