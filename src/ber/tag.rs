@@ -87,7 +87,7 @@ pub struct Tag {
 impl Tag {
   const CLASS_MASK: u8 = 0b1100_0000;
   const CONSTRUCTED_MASK: u8 = 0b0010_0000;
-  const VALUE_MASK: u8 = 0b0111_1111;
+  const VALUE_MASK: u8 = 0b0001_1111;
   const MORE_BYTES_MASK: u8 = 0b1000_0000;
 
   /// serializes the tag as byte array
@@ -112,6 +112,12 @@ impl Tag {
   ///
   /// let tag = Tag::try_from("7f8022")?;
   /// assert_eq!(3, tag.len_as_bytes());
+  ///
+  /// let tag = Tag::try_from("5fff22")?;
+  /// assert_eq!(3, tag.len_as_bytes());
+  ///
+  /// let tag = Tag::try_from("5f2d")?;
+  /// assert_eq!(2, tag.len_as_bytes());
   /// #  Ok(())
   /// # }
   /// #
@@ -162,6 +168,7 @@ impl Tag {
   /// assert_eq!(Class::Universal, tag.class());
   /// let tag = Tag::try_from(0b1100_0000)?;
   /// assert_eq!(Class::Private, tag.class());
+  ///
   /// #  Ok(())
   /// # }
   /// #
@@ -360,6 +367,12 @@ mod tests {
 
     assert!(Tag::try_from("7fff22").is_ok());
     assert_eq!(Err(TlvError::ParseIntError), Tag::try_from("bad one"));
+
+    let t = Tag::try_from("5fff22")?;
+    assert_eq!(3, t.len_as_bytes());
+
+    let t = Tag::try_from("5f2d")?;
+    assert_eq!(2, t.len_as_bytes());
 
     Ok(())
   }
