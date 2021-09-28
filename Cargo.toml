@@ -1,6 +1,6 @@
 [package]
 name = "iso7816-tlv"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Julien Kowalski <julien.kowalski@ercom.fr>"]
 edition = "2018"
 license = "ISC"
@@ -16,9 +16,10 @@ readme = "Readme.md"
 
 
 [dependencies]
-untrusted = "0.7.0"
+untrusted = "0.9"
 
 [dev-dependencies]
 static-alloc = "0.2.1"
-rand_core = "0.5.1"
-rand_xorshift = "0.2"
+rand_core = "0.6"
+rand_xorshift = "0.3"
+hex-literal="0.3"

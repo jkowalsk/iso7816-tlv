@@ -27,6 +27,10 @@ static ALLOC: Bump<[u8; 1 << 28]> = Bump::uninit();
 #[macro_use]
 extern crate alloc;
 
+#[cfg(test)]
+#[macro_use]
+extern crate hex_literal;
+
 use core::result;
 
 // internal organization
