@@ -176,6 +176,23 @@ impl Tlv {
             r.read_bytes_to_end().as_slice_less_safe(),
         )
     }
+
+    /// Parses a byte array into a vector of SIMPLE-TLV.
+    /// # Note
+    /// Errors are discarded and parsing stops at first error
+    pub fn parse_all(input: &[u8]) -> Vec<Self> {
+        let mut ret = Vec::new();
+        let mut r = Reader::new(Input::from(input));
+        while !r.at_end() {
+            let result = Self::read(&mut r);
+            match result {
+                Ok(elem) => ret.push(elem),
+                Err(_) => break,
+            }
+        }
+        ret
+    }
+
     /// Parses a byte array into a SIMPLE-TLV structure.
     /// Input must exactly match a SIMPLE-TLV object.
     /// # Errors
@@ -268,14 +285,15 @@ mod tests {
             "09 01 00"
         );
         let mut buf: &[u8] = &in_data;
-        loop {
+        let mut parsed_manual = Vec::new();
+        while buf.len() > 0 {
             let (r, remaining) = Tlv::parse(buf);
             buf = remaining;
-            if buf.len() == 0 {
-                break;
-            }
             assert!(r.is_ok());
+            parsed_manual.push(r.unwrap());
         }
+        let parsed_at_once = Tlv::parse_all(&in_data);
+        assert_eq!(parsed_manual, parsed_at_once);
         Ok(())
     }
 
