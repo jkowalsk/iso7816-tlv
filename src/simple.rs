@@ -168,6 +168,27 @@ impl Tlv {
 
     /// Parses a byte array into a SIMPLE-TLV structure.
     /// This also returns the unprocessed data.
+    /// # Example (parse mulitple tlv in input)
+    /// ```rust
+    /// use iso7816_tlv::simple::Tlv;
+    /// use hex_literal::hex;
+    ///
+    /// let in_data = hex!(
+    ///   "03 01 01"
+    ///   "04 01 04"
+    ///   "07 07 85 66 C9 6A 14 49 04"
+    ///   "01 08 57 5F 93 6E 01 00 00 00"
+    ///   "09 01 00");
+    /// let mut buf: &[u8] = &in_data;
+    /// let mut parsed_manual = Vec::new();
+    /// while !buf.is_empty() {
+    ///   let (r, remaining) = Tlv::parse(buf);
+    ///   buf = remaining;
+    ///   if r.map(|res| parsed_manual.push(res)).is_err() {
+    ///       break;
+    ///   }
+    /// }
+    /// ```
     pub fn parse(input: &[u8]) -> (Result<Self>, &[u8]) {
         let mut r = Reader::new(Input::from(input));
         (
@@ -179,15 +200,14 @@ impl Tlv {
     /// Parses a byte array into a vector of SIMPLE-TLV.
     /// # Note
     /// Errors are discarded and parsing stops at first error
+    /// Prefer using the parse() method and iterate over returned processed data.
     #[must_use]
     pub fn parse_all(input: &[u8]) -> Vec<Self> {
         let mut ret = Vec::new();
         let mut r = Reader::new(Input::from(input));
         while !r.at_end() {
-            let result = Self::read(&mut r);
-            match result {
-                Ok(elem) => ret.push(elem),
-                Err(_) => break,
+            if Self::read(&mut r).map(|elem| ret.push(elem)).is_err() {
+                break;
             }
         }
         ret
@@ -289,8 +309,10 @@ mod tests {
         while !buf.is_empty() {
             let (r, remaining) = Tlv::parse(buf);
             buf = remaining;
-            assert!(r.is_ok());
-            parsed_manual.push(r.unwrap());
+            let pushed = r.map(|res| parsed_manual.push(res));
+            if pushed.is_err() {
+                break;
+            }
         }
         let parsed_at_once = Tlv::parse_all(&in_data);
         assert_eq!(parsed_manual, parsed_at_once);

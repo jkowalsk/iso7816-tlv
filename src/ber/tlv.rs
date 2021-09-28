@@ -163,6 +163,22 @@ impl Tlv {
         )
     }
 
+    /// Parses a byte array into a vector of BER-TLV.
+    /// # Note
+    /// Errors are discarded and parsing stops at first error
+    /// Prefer using the parse() method and iterate over returned processed data.
+    #[must_use]
+    pub fn parse_all(input: &[u8]) -> Vec<Self> {
+        let mut ret = Vec::new();
+        let mut r = Reader::new(Input::from(input));
+        while !r.at_end() {
+            if Self::read(&mut r).map(|elem| ret.push(elem)).is_err() {
+                break;
+            }
+        }
+        ret
+    }
+
     /// Parses a byte array into a BER-TLV structure.
     /// Input must exactly match a BER-TLV object.
     /// # Errors
