@@ -68,6 +68,8 @@ pub struct Tlv {
     value: Value,
 }
 
+// From impl may fail, not the converse
+#[allow(clippy::from_over_into)]
 impl Into<u8> for Tag {
     fn into(self) -> u8 {
         self.0
@@ -128,16 +130,13 @@ impl Tlv {
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub fn to_vec(&self) -> Vec<u8> {
-        let mut ret = Vec::new();
-        ret.push(self.tag.0);
+        let mut ret = vec![self.tag.0];
         let len = self.value.len();
-        if len < 255 {
-            ret.push(len as u8);
-        } else {
+        if len >= 255 {
             ret.push(0xFF);
             ret.push((len >> 8) as u8);
-            ret.push(len as u8);
         }
+        ret.push(len as u8);
         ret.extend(&self.value);
         ret
     }
@@ -180,6 +179,7 @@ impl Tlv {
     /// Parses a byte array into a vector of SIMPLE-TLV.
     /// # Note
     /// Errors are discarded and parsing stops at first error
+    #[must_use]
     pub fn parse_all(input: &[u8]) -> Vec<Self> {
         let mut ret = Vec::new();
         let mut r = Reader::new(Input::from(input));
@@ -246,7 +246,7 @@ mod tests {
         assert_eq!(1, t.length());
         assert_eq!(&[0x2C], t.value());
 
-        let (r, in_data) = Tlv::parse(&in_data);
+        let (r, in_data) = Tlv::parse(in_data);
         assert_eq!(6, in_data.len());
         assert!(r.is_ok());
 
@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(0x97_u8, t.tag().into());
         assert_eq!(0, t.length());
 
-        let (r, in_data) = Tlv::parse(&in_data);
+        let (r, in_data) = Tlv::parse(in_data);
         assert_eq!(3, in_data.len());
         assert!(r.is_ok());
 
@@ -263,7 +263,7 @@ mod tests {
         assert_eq!(1, t.length());
         assert_eq!(&[0x24], t.value());
 
-        let (r, in_data) = Tlv::parse(&in_data);
+        let (r, in_data) = Tlv::parse(in_data);
         assert_eq!(0, in_data.len());
         assert!(r.is_ok());
 
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_multiple() -> Result<()> {
+    fn parse_multiple() {
         let in_data = hex!(
             "03 01 01"
             "04 01 04"
@@ -286,7 +286,7 @@ mod tests {
         );
         let mut buf: &[u8] = &in_data;
         let mut parsed_manual = Vec::new();
-        while buf.len() > 0 {
+        while !buf.is_empty() {
             let (r, remaining) = Tlv::parse(buf);
             buf = remaining;
             assert!(r.is_ok());
@@ -294,7 +294,6 @@ mod tests {
         }
         let parsed_at_once = Tlv::parse_all(&in_data);
         assert_eq!(parsed_manual, parsed_at_once);
-        Ok(())
     }
 
     #[test]
