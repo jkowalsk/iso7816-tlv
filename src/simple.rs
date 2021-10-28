@@ -94,6 +94,13 @@ impl TryFrom<&str> for Tag {
     }
 }
 
+impl Tag {
+    #[allow(missing_docs)]
+    pub fn to_u8(&self) -> u8{
+        self.0 as u8
+    }
+}
+
 impl Tlv {
     /// Create a SIMPLE-TLV data object from valid tag and value.
     /// A value has a maximum size of `65_535` bytes.
