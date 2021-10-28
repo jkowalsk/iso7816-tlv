@@ -168,7 +168,7 @@ impl Tlv {
 
     /// Parses a byte array into a SIMPLE-TLV structure.
     /// This also returns the unprocessed data.
-    /// # Example (parse mulitple tlv in input)
+    /// # Example (parse multiple TLV in input)
     /// ```rust
     /// use iso7816_tlv::simple::Tlv;
     /// use hex_literal::hex;
