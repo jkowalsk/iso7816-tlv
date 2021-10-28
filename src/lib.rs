@@ -59,4 +59,15 @@ mod tests {
         assert_eq!(m, true);
 
     }
+
+    #[test]
+    fn simple_tag_match_with_public_member() {
+        let tlv = Tlv::new(Tag::try_from(10).unwrap(), vec![0x0, 0x1]).unwrap();
+
+        let m = match tlv.tag() {
+            Tag(10) => true,
+            _ => false
+        };
+        assert_eq!(m, true);
+    }
 }

@@ -49,7 +49,7 @@ use crate::{Result, TlvError};
 /// #
 /// ```
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Tag(u8);
+pub struct Tag(pub u8);
 
 /// Value for SIMPLE-TLV data as defined in [ISO7816-4].
 /// > The value field consists of N consecutive bytes.
