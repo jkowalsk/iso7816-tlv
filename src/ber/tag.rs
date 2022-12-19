@@ -86,6 +86,7 @@ pub struct Tag {
 
 impl Tag {
     const CLASS_MASK: u8 = 0b1100_0000;
+    #[cfg(not(feature = "piv"))]
     const CONSTRUCTED_MASK: u8 = 0b0010_0000;
     const VALUE_MASK: u8 = 0b0001_1111;
     const MORE_BYTES_MASK: u8 = 0b1000_0000;
@@ -132,6 +133,8 @@ impl Tag {
     /// > - The value 0 indicates a primitive encoding of the data object, i.e., the value field is not encoded in BER - TLV .
     /// > - The value 1 indicates a constructed encoding of the data object, i.e., the value field is encoded in BER - TLV
     ///
+    /// Using the `piv` feature disables this.
+    ///
     /// # Example
     /// ```rust
     /// use std::convert::TryFrom;
@@ -148,6 +151,7 @@ impl Tag {
     /// # }
     /// #
     /// ```
+    #[cfg(not(feature = "piv"))]
     #[must_use]
     pub fn is_constructed(&self) -> bool {
         !matches!(self.raw[3 - self.len] & Self::CONSTRUCTED_MASK, 0)
@@ -205,11 +209,16 @@ impl fmt::Debug for Tag {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let t = [0, self.raw[0], self.raw[1], self.raw[2]];
         let as_int: u32 = u32::from_be_bytes(t);
+
+        #[cfg(not(feature = "piv"))]
         let constructed = if self.is_constructed() {
             "Contructed"
         } else {
             "Primitive"
         };
+        #[cfg(feature = "piv")]
+        let constructed = "";
+
         write!(f, "Tag {:x} ({:?}; {})", as_int, self.class(), constructed)
     }
 }

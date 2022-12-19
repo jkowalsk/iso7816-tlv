@@ -30,7 +30,11 @@ impl Tlv {
     /// Fails with `TlvError::Inconsistant`
     /// if the tag indicates a contructed value (resp. primitive) and the
     /// value is primitive (resp. contructed).
+    /// When using the `piv` feature, the
+    /// consistency of the tag class with the actual value is not checked
+    /// and this function never returns an error.
     pub fn new(tag: Tag, value: Value) -> Result<Self> {
+        #[cfg(not(feature = "piv"))]
         match value {
             Value::Constructed(_) => {
                 if !tag.is_constructed() {
@@ -131,6 +135,7 @@ impl Tlv {
         Ok(ret)
     }
 
+    #[cfg(not(feature = "piv"))]
     fn read(r: &mut Reader) -> Result<Self> {
         let tag = Tag::read(r)?;
         let len = Self::read_len(r)?;
@@ -153,8 +158,32 @@ impl Tlv {
         }
     }
 
+    #[cfg(feature = "piv")]
+    fn read(r: &mut Reader, is_constructed: bool) -> Result<Self> {
+        let tag = Tag::read(r)?;
+        let len = Self::read_len(r)?;
+
+        let ret = if is_constructed {
+            let mut val = Value::Constructed(vec![]);
+            while val.len_as_bytes() < len {
+                let tlv = Self::read(r, false)?;
+                val.push(tlv)?;
+            }
+            Self::new(tag, val)?
+        } else {
+            let content = r.read_bytes(len)?;
+            Self::new(tag, Value::Primitive(content.as_slice_less_safe().to_vec()))?
+        };
+        if ret.value.len_as_bytes() == len {
+            Ok(ret)
+        } else {
+            Err(TlvError::Inconsistant)
+        }
+    }
+
     /// Parses a byte array into a BER-TLV structure.
     /// This also returns the unprocessed data.
+    #[cfg(not(feature = "piv"))]
     pub fn parse(input: &[u8]) -> (Result<Self>, &[u8]) {
         let mut r = Reader::new(Input::from(input));
         (
@@ -163,10 +192,26 @@ impl Tlv {
         )
     }
 
+    /// Parses a byte array into a BER-TLV structure.
+    /// If `is_constructed` is true, then parses a constructed
+    /// TLV structure with depth two (containing only primitive
+    /// structures), else parses a
+    /// structure with depth one (primitive TLV).
+    /// This also returns the unprocessed data.
+    #[cfg(feature = "piv")]
+    pub fn parse(input: &[u8], is_constructed: bool) -> (Result<Self>, &[u8]) {
+        let mut r = Reader::new(Input::from(input));
+        (
+            Self::read(&mut r, is_constructed),
+            r.read_bytes_to_end().as_slice_less_safe(),
+        )
+    }
+
     /// Parses a byte array into a vector of BER-TLV.
     /// # Note
     /// Errors are discarded and parsing stops at first error
     /// Prefer using the parse() method and iterate over returned processed data.
+    #[cfg(not(feature = "piv"))]
     #[must_use]
     pub fn parse_all(input: &[u8]) -> Vec<Self> {
         let mut ret = Vec::new();
@@ -183,6 +228,7 @@ impl Tlv {
     /// Input must exactly match a BER-TLV object.
     /// # Errors
     /// Fails with `TlvError::InvalidInput` if input does not match a BER-TLV object.
+    #[cfg(not(feature = "piv"))]
     pub fn from_bytes(input: &[u8]) -> Result<Self> {
         let (r, n) = Self::parse(input);
         if n.is_empty() {
@@ -287,7 +333,10 @@ mod tests {
             assert_eq!(Value::Primitive(data), *tlv.value());
 
             let mut r = Reader::new(Input::from(&expected));
+            #[cfg(not(feature = "piv"))]
             let read = Tlv::read(&mut r)?;
+            #[cfg(feature = "piv")]
+            let read = Tlv::read(&mut r, false)?;
             assert_eq!(tlv, read);
         }
         {
@@ -300,7 +349,10 @@ mod tests {
             assert_eq!(Value::Primitive(data), *tlv.value());
 
             let mut r = Reader::new(Input::from(&expected));
+            #[cfg(not(feature = "piv"))]
             let read = Tlv::read(&mut r)?;
+            #[cfg(feature = "piv")]
+            let read = Tlv::read(&mut r, false)?;
             assert_eq!(tlv, read);
         }
         {
@@ -313,7 +365,10 @@ mod tests {
             assert_eq!(Value::Primitive(data), *tlv.value());
 
             let mut r = Reader::new(Input::from(&expected));
+            #[cfg(not(feature = "piv"))]
             let read = Tlv::read(&mut r)?;
+            #[cfg(feature = "piv")]
+            let read = Tlv::read(&mut r, false)?;
             assert_eq!(tlv, read);
         }
 
@@ -337,7 +392,10 @@ mod tests {
         assert_eq!(construct, *tlv.value());
 
         let mut r = Reader::new(Input::from(&expected));
+        #[cfg(not(feature = "piv"))]
         let read = Tlv::read(&mut r)?;
+        #[cfg(feature = "piv")]
+        let read = Tlv::read(&mut r, true)?;
         assert_eq!(tlv, read);
 
         construct.push(base.clone())?;
@@ -347,7 +405,11 @@ mod tests {
         assert_eq!(expected, tlv.to_vec());
 
         let mut r = Reader::new(Input::from(&expected));
+        #[cfg(not(feature = "piv"))]
         let read = Tlv::read(&mut r)?;
+        #[cfg(feature = "piv")]
+        let read = Tlv::read(&mut r, true)?;
+
         assert_eq!(tlv, read);
 
         Ok(())
@@ -363,7 +425,10 @@ mod tests {
         input.extend(&primitive_bytes);
         let expected = input.clone();
         input.extend(&more_bytes);
+        #[cfg(not(feature = "piv"))]
         let (tlv, left) = Tlv::parse(&input);
+        #[cfg(feature = "piv")]
+        let (tlv, left) = Tlv::parse(&input, false);
         assert_eq!(expected, tlv?.to_vec());
         assert_eq!(more_bytes, left);
         Ok(())
