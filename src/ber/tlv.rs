@@ -1,12 +1,15 @@
+//! Tlv generic structure (for non ISO7816 tags)
+//!
+
 use alloc::vec::Vec;
 use core::fmt;
 
 use untrusted::{Input, Reader};
 
-use super::{Tag, Value};
+use super::{tag::Tag, value::Value};
 use crate::{Result, TlvError};
 
-/// BER-TLV structure, following ISO/IEC 7816-4.
+/// BER-TLV structure.
 /// > # BER-TLV data objects
 /// > Each BER-TLV data object consists of two or three consecutive fields
 /// > (see the basic encoding rules of ASN.1 in ISO/IEC 8825-1):
@@ -18,19 +21,26 @@ use crate::{Result, TlvError};
 /// >   It encodes a length, i.e., a number denoted N.
 /// > - If N is zero, there is no value field, i.e., the data object is empty.
 /// >   Otherwise (N > 0), the value field consists of N consecutive bytes.
+#[allow(clippy::module_name_repetitions)]
 #[derive(PartialEq, Debug, Clone)]
-pub struct Tlv {
-    tag: Tag,
-    value: Value,
+pub struct Tlv<T>
+where
+    T: Tag,
+{
+    tag: T,
+    value: Value<T>,
 }
 
-impl Tlv {
+impl<T> Tlv<T>
+where
+    T: Tag,
+{
     /// Create a BER-TLV data object from valid tag and value.alloc
     /// # Errors
     /// Fails with `TlvError::Inconsistant`
     /// if the tag indicates a contructed value (resp. primitive) and the
     /// value is primitive (resp. contructed).
-    pub fn new(tag: Tag, value: Value) -> Result<Self> {
+    pub fn new(tag: T, value: Value<T>) -> Result<Self> {
         match value {
             Value::Constructed(_) => {
                 if !tag.is_constructed() {
@@ -48,7 +58,7 @@ impl Tlv {
 
     /// Get BER-TLV  tag.
     #[must_use]
-    pub fn tag(&self) -> &Tag {
+    pub fn tag(&self) -> &T {
         &self.tag
     }
 
@@ -60,7 +70,7 @@ impl Tlv {
 
     /// Get BER-TLV value
     #[must_use]
-    pub fn value(&self) -> &Value {
+    pub fn value(&self) -> &Value<T> {
         &self.value
     }
 
@@ -132,7 +142,7 @@ impl Tlv {
     }
 
     fn read(r: &mut Reader) -> Result<Self> {
-        let tag = Tag::read(r)?;
+        let tag = T::read(r)?;
         let len = Self::read_len(r)?;
 
         let ret = if tag.is_constructed() {
@@ -194,7 +204,7 @@ impl Tlv {
 
     /// Finds first occurence of a TLV object with given tag in self.
     #[must_use]
-    pub fn find(&self, tag: &Tag) -> Option<&Self> {
+    pub fn find(&self, tag: &T) -> Option<&Self> {
         match &self.value {
             Value::Primitive(_) => {
                 if self.tag == *tag {
@@ -219,7 +229,7 @@ impl Tlv {
     /// Note that searching `ContextSpecific` class tag (0x80 for instance) will return
     /// a vector of possibly unrelated tlv data.
     #[must_use]
-    pub fn find_all(&self, tag: &Tag) -> Vec<&Self> {
+    pub fn find_all(&self, tag: &T) -> Vec<&Self> {
         let mut ret: Vec<&Self> = Vec::new();
         match &self.value {
             Value::Primitive(_) => {
@@ -238,7 +248,10 @@ impl Tlv {
     }
 }
 
-impl fmt::Display for Tlv {
+impl<T> fmt::Display for Tlv<T>
+where
+    T: Tag,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}, ", self.tag)?;
         write!(f, "len={}, ", self.value.len_as_bytes())?;
@@ -247,7 +260,7 @@ impl fmt::Display for Tlv {
         match &self.value {
             Value::Primitive(e) => {
                 for x in e {
-                    write!(f, "{:02X}", x)?;
+                    write!(f, "{x:02X}")?;
                 }
             }
             Value::Constructed(e) => {
@@ -271,6 +284,7 @@ impl fmt::Display for Tlv {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ber::{Tag, Tlv};
     use core::convert::TryFrom;
 
     #[test]

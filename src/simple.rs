@@ -48,7 +48,7 @@ use crate::{Result, TlvError};
 /// # }
 /// #
 /// ```
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Tag(u8);
 
 /// Value for SIMPLE-TLV data as defined in [ISO7816-4].
@@ -62,7 +62,7 @@ pub type Value = Vec<u8>;
 /// SIMPLE-TLV data object representation.
 /// > Each SIMPLE-TLV data object shall consist of two or three consecutive fields:
 /// > a mandatory tag field, a mandatory length field and a conditional value field
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Tlv {
     tag: Tag,
     value: Value,
@@ -327,7 +327,7 @@ mod tests {
             let v: Value = (0..v_len).map(|_| rng.next_u32() as u8).collect();
             let tlv = Tlv::new(Tag::try_from(r)?, v.clone())?;
             let ser = tlv.to_vec();
-            let tlv_2 = Tlv::from_bytes(&*ser)?;
+            let tlv_2 = Tlv::from_bytes(&ser)?;
             assert_eq!(tlv, tlv_2);
 
             assert_eq!(r, tlv.tag().into());

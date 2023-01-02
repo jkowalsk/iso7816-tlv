@@ -1,20 +1,30 @@
-use super::Tlv;
+//! Generic Value structure (for non ISO7816 tags)
+//!
+
+use super::tlv::Tlv;
+use crate::ber::tag::Tag;
 use crate::error::TlvError;
 use crate::Result;
-
 use alloc::vec::Vec;
 
 /// Value definition of BER-TLV data
+#[allow(clippy::module_name_repetitions)]
 #[derive(PartialEq, Debug, Clone)]
-pub enum Value {
+pub enum Value<T>
+where
+    T: Tag,
+{
     /// constructed data object, i.e., the value is encoded in BER-TLV
-    Constructed(Vec<Tlv>),
+    Constructed(Vec<Tlv<T>>),
     /// primitive data object, i.e., the value is not encoded in BER-TLV
     /// (may be empty)
     Primitive(Vec<u8>),
 }
 
-impl Value {
+impl<T> Value<T>
+where
+    T: Tag,
+{
     /// Wether the value is constructed or not
     #[must_use]
     pub fn is_constructed(&self) -> bool {
@@ -33,7 +43,7 @@ impl Value {
     /// Append a BER-TLV data object.
     /// # Errors
     /// Fails with `TlvError::Inconsistant` on primitive or empty values.
-    pub fn push(&mut self, tlv: Tlv) -> Result<()> {
+    pub fn push(&mut self, tlv: Tlv<T>) -> Result<()> {
         match self {
             Self::Constructed(t) => {
                 t.push(tlv);

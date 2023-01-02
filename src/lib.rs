@@ -41,4 +41,7 @@ pub mod simple;
 // custom reexport (structs at same level for users)
 pub use error::TlvError;
 
+// reexport for Tag trait
+pub use untrusted::Reader;
+
 type Result<T> = result::Result<T, TlvError>;
