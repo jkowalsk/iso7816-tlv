@@ -1,6 +1,6 @@
 [package]
 name = "iso7816-tlv"
-version = "0.4.2"
+version = "0.5.2"
 authors = ["Julien Kowalski <julien.kowalski@ercom.fr>"]
 edition = "2018"
 license = "ISC"
