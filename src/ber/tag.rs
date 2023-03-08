@@ -271,7 +271,7 @@ impl TryFrom<u64> for Tag {
         }
 
         if len > 1 {
-            match bytes[3 - len] {
+            match bytes[1] {
                 0x00 | 0x1E | 0x80 => return Err(TlvError::InvalidInput),
                 _ => (),
             }
@@ -374,6 +374,16 @@ mod tests {
         assert_eq!(2, t.len_as_bytes());
 
         Ok(())
+    }
+
+    #[test]
+    fn issue_14() {
+        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f1e01));
+        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f8001));
+        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f0001));
+        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x9f1e));
+        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x9f00));
+        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x9f80));
     }
 
     #[test]
