@@ -110,7 +110,7 @@ impl Tag {
     /// let tag = Tag::try_from("7f22")?;
     /// assert_eq!(2, tag.len_as_bytes());  
     ///
-    /// let tag = Tag::try_from("7f8022")?;
+    /// let tag = Tag::try_from("7f8122")?;
     /// assert_eq!(3, tag.len_as_bytes());
     ///
     /// let tag = Tag::try_from("5fff22")?;
