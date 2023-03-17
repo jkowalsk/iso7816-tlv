@@ -37,16 +37,6 @@ impl From<u8> for Class {
 }
 
 /// Tag for BER-TLV data as defined in [ISO7816-4].
-/// Valid tags are defined as follow:
-/// > ISO/IEC 7816 supports tag fields of one, two and three bytes;
-/// > longer tag fields are reserved for future use
-///
-/// > In tag fields of two or more bytes,
-/// > the values '00' to '1E' and '80' are invalid for the second byte.
-/// > - In two-byte tag fields, the second byte consists of bit 8 set to 0 and bits 7 to 1.
-/// > - In three-byte tag fields, the second byte consists of bit 8 set to 1 and bits 7 to 1
-/// >   not all set to 0;
-/// >   the third byte consists of bit 8 set to 0 and bits 7 to 1 with any value.
 ///
 /// Tags can be generated using the [`TryFrom`][TryFrom] trait
 /// from integer types (see [Trait Implementations](struct.Tag.html#implementations) for valid input types)
@@ -55,6 +45,9 @@ impl From<u8> for Class {
 ///
 /// [TryFrom]: https://doc.rust-lang.org/std/convert/trait.TryFrom.html
 /// [str]:https://doc.rust-lang.org/std/str/
+///
+/// Tags are now imported in a more permissivie way.
+/// Invalid tags in ISO7816 meaning can be checked, see [Self::iso7816_compliant]
 ///
 /// # Example
 /// ```rust
@@ -72,9 +65,10 @@ impl From<u8> for Class {
 ///
 /// assert!(Tag::try_from("error ").is_err());
 /// assert!(Tag::try_from("7fffff01").is_err());
-/// assert!(Tag::try_from("7f00").is_err());
 /// assert!(Tag::try_from("7f80ff").is_err());
-/// assert!(Tag::try_from("7f1e").is_err());
+/// // now more permissive interface :
+/// assert!(Tag::try_from("7f00").is_ok());
+/// assert!(Tag::try_from("7f1e").is_ok());
 /// # }
 /// #
 /// ```
@@ -151,6 +145,65 @@ impl Tag {
     #[must_use]
     pub fn is_constructed(&self) -> bool {
         !matches!(self.raw[3 - self.len] & Self::CONSTRUCTED_MASK, 0)
+    }
+
+    /// Valid tags are defined as follow:
+    /// > ISO/IEC 7816 supports tag fields of one, two and three bytes;
+    /// > longer tag fields are reserved for future use
+    ///
+    /// > In tag fields of two or more bytes,
+    /// > the values '00' to '1E' and '80' are invalid for the second byte.
+    /// > - In two-byte tag fields, the second byte consists of bit 8 set to 0 and bits 7 to 1
+    /// >   encoding a number greater than thirty.
+    /// >   The second byte is valued from '1F' to '7F; the tag number is from 31 to 127.
+    /// > - In three-byte tag fields, the second byte consists of bit 8 set to 1 and bits 7 to 1
+    /// >   not all set to 0;
+    /// >   the third byte consists of bit 8 set to 0 and bits 7 to 1 with any value.
+    /// # Example
+    /// ```rust
+    /// use std::convert::TryFrom;
+    /// use iso7816_tlv::ber::Tag;
+    /// # use iso7816_tlv::TlvError;
+    ///
+    /// # fn main() -> Result<(), TlvError> {
+    /// let t = Tag::try_from("7f00")?;
+    /// assert!(!t.iso7816_compliant());
+    /// // 9f1e is a valid EMV tag, but not ISO7816-4 compliant
+    /// let t = Tag::try_from("9f1e")?;
+    /// assert!(!t.iso7816_compliant());
+    /// # Ok(())
+    /// # }
+    /// #
+    pub fn iso7816_compliant(&self) -> bool {
+        let first_byte_ok = if self.len == 1 {
+            (self.raw[2] & Self::VALUE_MASK) != Self::VALUE_MASK
+        } else {
+            (self.raw[2] & Self::VALUE_MASK) == Self::VALUE_MASK
+        };
+
+        let other_bytes_ok = match self.len {
+            1 => true,
+            2 => {
+                // In two-byte tag fields, the second byte consists of bit 8 set to 0 and bits 7 to 1 encoding a number greater
+                // than thirty. The second byte is valued from '1F' to '7F; the tag number is from 31 to 127
+                if self.raw[2] < 0x1F_u8 || self.raw[2] > 0x7F_u8 {
+                    false
+                } else {
+                    true
+                }
+            }
+            3 => {
+                // The second byte is valued from '81' to 'FF'
+                if self.raw[2] < 0x81_u8 {
+                    false
+                } else {
+                    //and the third byte from '00' to '7F';
+                    self.raw[3] & Self::MORE_BYTES_MASK == 0
+                }
+            }
+            _ => false, //rfu
+        };
+        first_byte_ok & other_bytes_ok
     }
 
     /// Get the tag class.
@@ -270,13 +323,6 @@ impl TryFrom<u64> for Tag {
             _ => return Err(TlvError::TagIsRFU),
         }
 
-        if len > 1 {
-            match bytes[1] {
-                0x00 | 0x1E | 0x80 => return Err(TlvError::InvalidInput),
-                _ => (),
-            }
-        }
-
         Ok(Self { raw, len })
     }
 }
@@ -377,13 +423,13 @@ mod tests {
     }
 
     #[test]
-    fn issue_14() {
-        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f1e01));
-        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f8001));
-        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x7f0001));
-        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x9f1e));
-        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x9f00));
-        assert_eq!(Err(TlvError::InvalidInput), Tag::try_from(0x9f80));
+    fn issue_14() -> Result<()> {
+        let testcases = [0x7f1e, 0x7f8001, 0x7f00, 0x9f1e, 0x9f00];
+        for v in testcases {
+            let t = Tag::try_from(v)?;
+            assert!(!t.iso7816_compliant());
+        }
+        Ok(())
     }
 
     #[test]
@@ -396,9 +442,10 @@ mod tests {
         assert!(Tag::try_from("7f22").is_ok());
 
         assert!(Tag::try_from("bad").is_err());
-        assert!(Tag::try_from("7f00").is_err());
         assert!(Tag::try_from("7f80").is_err());
-        assert!(Tag::try_from("7f1e").is_err());
+        // updte : now ok, but not iso7816 compliant
+        assert!(Tag::try_from("7f00").is_ok());
+        assert!(Tag::try_from("7f1e").is_ok());
     }
     #[test]
     fn tag_import() -> Result<()> {
