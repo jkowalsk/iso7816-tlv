@@ -327,7 +327,7 @@ mod tests {
             let v: Value = (0..v_len).map(|_| rng.next_u32() as u8).collect();
             let tlv = Tlv::new(Tag::try_from(r)?, v.clone())?;
             let ser = tlv.to_vec();
-            let tlv_2 = Tlv::from_bytes(&*ser)?;
+            let tlv_2 = Tlv::from_bytes(&ser)?;
             assert_eq!(tlv, tlv_2);
 
             assert_eq!(r, tlv.tag().into());

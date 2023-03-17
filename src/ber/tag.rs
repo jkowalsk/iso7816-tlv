@@ -47,7 +47,7 @@ impl From<u8> for Class {
 /// [str]:https://doc.rust-lang.org/std/str/
 ///
 /// Tags are now imported in a more permissivie way.
-/// Invalid tags in ISO7816 meaning can be checked, see [Self::iso7816_compliant]
+/// Invalid tags in ISO7816 meaning can be checked, see [`Self::iso7816_compliant`]
 ///
 /// # Example
 /// ```rust
@@ -174,6 +174,7 @@ impl Tag {
     /// # Ok(())
     /// # }
     /// #
+    #[must_use]
     pub fn iso7816_compliant(&self) -> bool {
         let first_byte_ok = if self.len == 1 {
             (self.raw[2] & Self::VALUE_MASK) != Self::VALUE_MASK
@@ -186,11 +187,7 @@ impl Tag {
             2 => {
                 // In two-byte tag fields, the second byte consists of bit 8 set to 0 and bits 7 to 1 encoding a number greater
                 // than thirty. The second byte is valued from '1F' to '7F; the tag number is from 31 to 127
-                if self.raw[2] < 0x1F_u8 || self.raw[2] > 0x7F_u8 {
-                    false
-                } else {
-                    true
-                }
+                !(self.raw[2] < 0x1F_u8 || self.raw[2] > 0x7F_u8)
             }
             3 => {
                 // The second byte is valued from '81' to 'FF'
@@ -424,7 +421,7 @@ mod tests {
 
     #[test]
     fn issue_14() -> Result<()> {
-        let testcases = [0x7f1e, 0x7f8001, 0x7f00, 0x9f1e, 0x9f00];
+        let testcases = [0x7f1e, 0x007f_8001, 0x7f00, 0x9f1e, 0x9f00];
         for v in testcases {
             let t = Tag::try_from(v)?;
             assert!(!t.iso7816_compliant());
