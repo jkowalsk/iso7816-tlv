@@ -247,7 +247,7 @@ impl fmt::Display for Tlv {
         match &self.value {
             Value::Primitive(e) => {
                 for x in e {
-                    write!(f, "{:02X}", x)?;
+                    write!(f, "{x:02X}")?;
                 }
             }
             Value::Constructed(e) => {

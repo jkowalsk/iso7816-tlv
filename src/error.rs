@@ -37,7 +37,7 @@ impl fmt::Display for TlvError {
       Self::Inconsistant => "Inconsistant (tag, value) pair",
       Self::InvalidLength => "Read invalid length value",
     };
-    write!(f, "{}", s)
+    write!(f, "{s}")
   }
 }
 
