@@ -14,7 +14,7 @@
 // otherwise cargo doc fails with
 // error: no global memory allocator found but one is required; link to std or add #[global_allocator] to
 // a static item that implements the GlobalAlloc trait.
-#![cfg_attr(not(doc), no_std)]
+#![cfg_attr(all(not(doc), not(feature = "std")), no_std)]
 
 // use custom allocator for tests
 #[cfg(test)]
