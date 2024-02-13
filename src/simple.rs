@@ -51,6 +51,32 @@ use crate::{Result, TlvError};
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Tag(u8);
 
+impl Tag {
+    /// Tries to convert a `u8` into a `Tag`. This is equivalent to the
+    /// [`TryFrom`] impl for `u8`, except that this fn is const and can be used
+    /// in some contexts that `TryFrom` cannot be used in, for example for
+    /// defining constants:
+    ///
+    /// ```
+    /// use iso7816_tlv::simple::Tag;
+    ///
+    /// const SOME_TAG_CONSTANT: Tag = match Tag::try_from_u8(0x42) {
+    ///     Ok(tag) => tag,
+    ///     Err(e) => panic!(),
+    /// };
+    /// ```
+    ///
+    /// # Errors
+    /// This method returns `Err(TlvError::InvalidInput)` if `v` is not a legal
+    /// tag (e.g., if v is `0x00` or `0xFF`).
+    pub const fn try_from_u8(v: u8) -> Result<Self> {
+        match v {
+            0x00 | 0xFF => Err(TlvError::InvalidInput),
+            _ => Ok(Self(v)),
+        }
+    }
+}
+
 /// Value for SIMPLE-TLV data as defined in [ISO7816-4].
 /// > The value field consists of N consecutive bytes.
 /// > N may be zero.
@@ -79,10 +105,7 @@ impl Into<u8> for Tag {
 impl TryFrom<u8> for Tag {
     type Error = TlvError;
     fn try_from(v: u8) -> Result<Self> {
-        match v {
-            0x00 | 0xFF => Err(TlvError::InvalidInput),
-            _ => Ok(Self(v)),
-        }
+        Self::try_from_u8(v)
     }
 }
 
