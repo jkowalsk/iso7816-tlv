@@ -27,7 +27,7 @@ pub struct Tlv {
 impl Tlv {
     /// Create a BER-TLV data object from valid tag and value.alloc
     /// # Errors
-    /// Fails with `TlvError::Inconsistant`
+    /// Fails with [`TlvError::Inconsistant`]
     /// if the tag indicates a contructed value (resp. primitive) and the
     /// value is primitive (resp. contructed).
     pub fn new(tag: Tag, value: Value) -> Result<Self> {
@@ -166,7 +166,7 @@ impl Tlv {
     /// Parses a byte array into a vector of BER-TLV.
     /// # Note
     /// Errors are discarded and parsing stops at first error
-    /// Prefer using the parse() method and iterate over returned processed data.
+    /// Prefer using the [`parse()`](Self::parse()) method and iterate over returned processed data.
     #[must_use]
     pub fn parse_all(input: &[u8]) -> Vec<Self> {
         let mut ret = Vec::new();
@@ -182,7 +182,7 @@ impl Tlv {
     /// Parses a byte array into a BER-TLV structure.
     /// Input must exactly match a BER-TLV object.
     /// # Errors
-    /// Fails with `TlvError::InvalidInput` if input does not match a BER-TLV object.
+    /// Fails with [`TlvError::InvalidInput`] if input does not match a BER-TLV object.
     pub fn from_bytes(input: &[u8]) -> Result<Self> {
         let (r, n) = Self::parse(input);
         if n.is_empty() {
@@ -216,7 +216,7 @@ impl Tlv {
     }
 
     /// find all occurences of TLV objects with given given tag in self.
-    /// Note that searching `ContextSpecific` class tag (0x80 for instance) will return
+    /// Note that searching [`ContextSpecific`](crate::ber::tag::Class::ContextSpecific) class tag (0x80 for instance) will return
     /// a vector of possibly unrelated tlv data.
     #[must_use]
     pub fn find_all(&self, tag: &Tag) -> Vec<&Self> {

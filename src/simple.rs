@@ -223,7 +223,7 @@ impl Tlv {
     /// Parses a byte array into a vector of SIMPLE-TLV.
     /// # Note
     /// Errors are discarded and parsing stops at first error
-    /// Prefer using the parse() method and iterate over returned processed data.
+    /// Prefer using the [`parse()`](Self::parse()) method and iterate over returned processed data.
     #[must_use]
     pub fn parse_all(input: &[u8]) -> Vec<Self> {
         let mut ret = Vec::new();
