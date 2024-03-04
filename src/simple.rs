@@ -49,7 +49,7 @@ use crate::{Result, TlvError};
 /// #
 /// ```
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct Tag(u8);
+pub struct Tag(pub u8);
 
 impl Tag {
     /// Tries to convert a `u8` into a `Tag`. This is equivalent to the
@@ -114,6 +114,13 @@ impl TryFrom<&str> for Tag {
     fn try_from(v: &str) -> Result<Self> {
         let x = u8::from_str_radix(v, 16)?;
         Self::try_from(x)
+    }
+}
+
+impl Tag {
+    #[allow(missing_docs)]
+    pub fn to_u8(&self) -> u8{
+        self.0 as u8
     }
 }
 
@@ -191,7 +198,7 @@ impl Tlv {
 
     /// Parses a byte array into a SIMPLE-TLV structure.
     /// This also returns the unprocessed data.
-    /// # Example (parse mulitple tlv in input)
+    /// # Example (parse multiple TLV in input)
     /// ```rust
     /// use iso7816_tlv::simple::Tlv;
     /// use hex_literal::hex;
